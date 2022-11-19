@@ -1,13 +1,32 @@
-import React from 'react';
-import ReactDOM from 'react-dom/client';
-import './index.css';
-import App from './App';
-import reportWebVitals from './reportWebVitals';
+import React from "react";
+import ReactDOM from "react-dom/client";
+import "./index.css";
+import App from "./App";
+import reportWebVitals from "./reportWebVitals";
+import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
+import MeuBolao from "./MeuBolao";
+import LoginPage from "./LoginPage";
+import SignUpPage from "./SignUpPage";
+import Situacao from "./Situacao";
+import Regras from "./Regras";
+import Resultados from "./Resultados";
 
-const root = ReactDOM.createRoot(document.getElementById('root'));
+const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(
   <React.StrictMode>
-    <App />
+    <BrowserRouter>
+      <Routes>
+        <Route path="/signup" element={<SignUpPage />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route exact path="/" element={<Navigate to="/login" />} />
+        <Route element={<App />}>
+          <Route path="/home" element={<MeuBolao />} />
+          <Route path="/situacao" element={<Situacao />} />
+          <Route path="/regras" element={<Regras />} />
+          <Route path="/resultados" element={<Resultados />} />
+        </Route>
+      </Routes>
+    </BrowserRouter>
   </React.StrictMode>
 );
 
