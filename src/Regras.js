@@ -86,6 +86,26 @@ function Regras() {
                 <Typography variant={"body2"}>0 pontos</Typography>
               </Grid>
             </Grid>
+            <Grid item container spacing={0.5}>
+              <Grid item>
+                <Typography variant={"body2"} typography={{ fontWeight: "bold" }} textAlign={"left"}>
+                  Acertou artilheiro:
+                </Typography>
+              </Grid>
+              <Grid item>
+                <Typography variant={"body2"}>10 pontos</Typography>
+              </Grid>
+            </Grid>
+            <Grid item container spacing={0.5}>
+              <Grid item>
+                <Typography variant={"body2"} typography={{ fontWeight: "bold" }} textAlign={"left"}>
+                  Acertou campeão:
+                </Typography>
+              </Grid>
+              <Grid item>
+                <Typography variant={"body2"}>10 pontos</Typography>
+              </Grid>
+            </Grid>
             <Grid item>
               <Typography variant={"h6"} textAlign={"left"}>
                 Premiação

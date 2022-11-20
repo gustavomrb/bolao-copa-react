@@ -83,7 +83,7 @@ function App() {
             <ListItemText primary="Regras" />
           </ListItemButton>
         </ListItem>
-        <ListItem
+        {/*<ListItem
           disablePadding
           onClick={() => {
             setMenuAberto(false);
@@ -96,7 +96,7 @@ function App() {
             </ListItemIcon>
             <ListItemText primary="Resultados" />
           </ListItemButton>
-        </ListItem>
+        </ListItem>*/}
         <ListItem disablePadding sx={{ flexDirection: "column", justifyContent: "center", mt: 1, gap: 0.5 }}>
           <Typography variant={"body1"}>Pix para pagamento</Typography>
           <Typography variant={"body2"}>21997586852</Typography>
