@@ -1,6 +1,6 @@
-import { Card, Grid, IconButton, Typography, useMediaQuery } from "@mui/material";
+import { Card, Grid, IconButton, TextField, Typography, useMediaQuery } from "@mui/material";
 import { useEffect, useState } from "react";
-import { auth, buscaJogosCopa, buscarTodosResultados, buscaSelecoesCopa } from "./firebase";
+import { auth, buscaJogosCopa, buscarTodosResultados, buscaSelecoesCopa, buscaUsuario } from "./firebase";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { useTheme } from "@emotion/react";
 import { CalendarMonth, SortByAlphaRounded } from "@mui/icons-material";
@@ -26,6 +26,7 @@ function Resultados() {
   const [sortValue, setSortValue] = useState("g");
   const [selecoesCopa, setSelecoesCopa] = useState([]);
   const [resultadosUsuarios, setResultadosUsuarios] = useState([]);
+  const [userBanco, setuserBanco] = useState(null);
   const [user] = useAuthState(auth);
 
   const theme = useTheme();
@@ -47,7 +48,6 @@ function Resultados() {
   const organizarPorGrupo = () => {
     const organizadosGrupo = [];
     const grupos = ["A", "B", "C", "D", "E", "F", "G", "H"];
-    console.log(jogosCopa);
     for (let grupo of grupos) {
       const grupoJson = { grupo: grupo, jogos: [] };
       grupoJson.jogos = jogosCopa.filter((j) => j.data().grupo === grupo);
@@ -60,13 +60,13 @@ function Resultados() {
   const pegaMediaJogo = (idJogo) => {
     let somaPontos = 0;
     let users = 0;
-    resultadosUsuarios.forEach((resUsuario, i) => {
+    for (let resUsuario of resultadosUsuarios) {
       const res = resUsuario.data().jogos[idJogo];
       if (!isNaN(res.pontos)) {
         somaPontos += res.pontos;
         users += 1;
       }
-    });
+    }
     return (somaPontos / users).toFixed(2);
   };
 
@@ -75,19 +75,37 @@ function Resultados() {
       buscaJogosCopa().then((v) => {
         const jogos = v.docs;
         setJogosCopa(jogos);
-        buscarTodosResultados().then((va) => {
-          setResultadosUsuarios(va.docs);
-          buscaSelecoesCopa().then((val) => {
-            setSelecoesCopa(val.docs);
-          });
-        });
       });
     }
 
     if (jogosShow.length === 0 && jogosCopa.length > 0) {
       organizarPorGrupo();
     }
-  }, [jogosCopa]);
+
+    if (selecoesCopa.length === 0) {
+      buscaSelecoesCopa().then((val) => {
+        setSelecoesCopa(val.docs);
+      });
+    }
+
+    if (resultadosUsuarios.length === 0) {
+      buscarTodosResultados().then((va) => {
+        setResultadosUsuarios(va.docs);
+      });
+    }
+
+    if (user && !userBanco) {
+      buscaUsuario(user.uid).then((v) => setuserBanco(v.data()));
+    }
+  }, [jogosCopa, user]);
+
+  const handleInputChange = (event, propertyName, idJogo) => {
+    const newJogosCopa = JSON.parse(JSON.stringify(jogosCopa));
+    const jogo = newJogosCopa.find((j) => j.id === idJogo);
+    jogo.data()[propertyName] =
+      event.target.value !== "" && event.target.value.match(/[0-9]/).length > 0 ? parseInt(event.target.value) : null;
+    setJogosCopa(newJogosCopa);
+  };
 
   return (
     <Grid container justifyContent={"center"} alignItems={"center"}>
@@ -136,7 +154,6 @@ function Resultados() {
                   <Card elevation={3} sx={{ pt: 1.5, pb: 1, borderRadius: 4 }}>
                     <Grid container direction={"column"} spacing={2}>
                       {j.jogos.map((jo, k) => {
-                        console.log(jo);
                         const time1 = selecoesCopa.find((s) => s.id === jo.data().times[0]);
                         const time2 = selecoesCopa.find((s) => s.id === jo.data().times[1]);
                         return (
@@ -164,13 +181,47 @@ function Resultados() {
                               <Typography variant="body2">{time1.data().nome}</Typography>
                             </Grid>
                             <Grid item xs={1}>
-                              <Typography>{jo.data().gols1 ? jo.data().gols1 : "-"}</Typography>
+                              {userBanco.isAdmin ? (
+                                <TextField
+                                  variant="standard"
+                                  size="small"
+                                  margin="none"
+                                  value={jo.data().gols1}
+                                  inputProps={{
+                                    inputMode: "numeric",
+                                    pattern: "[0-9]",
+                                    maxLength: 1,
+                                    style: { textAlign: "center", fontSize: "0.875rem" },
+                                  }}
+                                  sx={{ typography: "body2" }}
+                                  onChange={(e) => handleInputChange(e, "gols1", jo.id)}
+                                />
+                              ) : (
+                                <Typography>{jo.data().gols1 ? jo.data().gols1 : "-"}</Typography>
+                              )}
                             </Grid>
                             <Grid item xs={1}>
                               <Typography>x</Typography>
                             </Grid>
                             <Grid item xs={1}>
-                              <Typography>{jo.data().gols2 ? jo.data().gols2 : "-"}</Typography>
+                              {userBanco.isAdmin ? (
+                                <TextField
+                                  variant="standard"
+                                  size="small"
+                                  margin="none"
+                                  value={jo.data().gols2}
+                                  inputProps={{
+                                    inputMode: "numeric",
+                                    pattern: "[0-9]",
+                                    maxLength: 1,
+                                    style: { textAlign: "center", fontSize: "0.875rem" },
+                                  }}
+                                  sx={{ typography: "body2" }}
+                                  onChange={(e) => handleInputChange(e, "gols2", jo.id)}
+                                />
+                              ) : (
+                                <Typography>{jo.data().gols2 ? jo.data().gols2 : "-"}</Typography>
+                              )}
                             </Grid>
                             <Grid item xs={6.5} sm={5}>
                               <Typography variant="body2">{time2.data().nome}</Typography>

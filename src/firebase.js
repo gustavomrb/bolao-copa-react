@@ -56,6 +56,10 @@ const buscaUsuarios = async () => {
   return await getDocs(query(collection(database, "users"), orderBy("pago", "desc")));
 };
 
+const buscaUsuario = async (id) => {
+  return getDoc(doc(database, "users", id));
+};
+
 const buscarResultados = async (user) => {
   const resultadosSnap = await getDoc(doc(database, "resultadosUsuario", user.uid));
   if (resultadosSnap.exists()) {
@@ -138,4 +142,5 @@ export {
   criarUserBanco,
   buscaUsuarios,
   buscarTodosResultados,
+  buscaUsuario,
 };
