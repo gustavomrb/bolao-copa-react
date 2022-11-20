@@ -224,6 +224,7 @@ function MeuBolao() {
                                 }}
                                 sx={{ typography: "body2" }}
                                 onChange={(e) => handleInputChange(e, "gols1", jo.id)}
+                                disabled
                               />
                             </Grid>
                             <Grid item xs={1}>
@@ -242,16 +243,19 @@ function MeuBolao() {
                                   style: { textAlign: "center", fontSize: "0.875rem" },
                                 }}
                                 onChange={(e) => handleInputChange(e, "gols2", jo.id)}
+                                disabled
                               />
                             </Grid>
                             <Grid item xs={6.5} sm={5}>
                               <Typography variant="body2">{time2.data().nome}</Typography>
                             </Grid>
                             <Grid item xs={3}>
-                              <Typography variant="body2">-</Typography>
+                              <Typography variant="body2">
+                                {jo.data().gols1 ? `${jo.data().gols1} x ${jo.data().gols2}` : "-"}
+                              </Typography>
                             </Grid>
                             <Grid item xs={3} sm={3}>
-                              <Typography variant="body2">-</Typography>
+                              <Typography variant="body2">{resultado.pontos ? resultado.pontos : "-"}</Typography>
                             </Grid>
                           </Grid>
                         );
@@ -278,6 +282,7 @@ function MeuBolao() {
                 onChange={(e, nv) => setValueArtilheiro(nv)}
                 inputValue={resultados.artilheiro}
                 onInputChange={(e, nv) => handleArtilheiroCampeao(nv, "artilheiro")}
+                readOnly
               />
             </Grid>
             <Grid item xs={6} sm={4}>
@@ -289,6 +294,7 @@ function MeuBolao() {
                 onChange={(e, nv) => setValueCampeao(nv)}
                 inputValue={resultados.campeao}
                 onInputChange={(e, nv) => handleArtilheiroCampeao(nv, "campeao")}
+                readOnly
               />
             </Grid>
           </Grid>
@@ -298,6 +304,7 @@ function MeuBolao() {
               onClick={() => {
                 salvarResultados(resultados, user).then(setResultSalvo(true));
               }}
+              disabled
             >
               Enviar Palpites
             </Button>
