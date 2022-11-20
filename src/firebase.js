@@ -53,7 +53,7 @@ const buscaSelecoesCopa = async () => {
 };
 
 const buscaUsuarios = async () => {
-  return await getDocs(query(collection(database, "users"), orderBy("pago", "desc")));
+  return await getDocs(query(collection(database, "users"), orderBy("nome", "asc")));
 };
 
 const buscaUsuario = async (id) => {
