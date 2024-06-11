@@ -50,9 +50,12 @@ function App() {
     if (user) {
       if (jogosCopa.length === 0) {
         console.log("buscouJogos");
-        onSnapshot(query(collection(database, "jogosCopa"), orderBy("data")), (snapshot) => {
-          setJogosCopa(snapshot.docs.map((j) => ({ id: j.id, data: j.data() })));
+        onSnapshot(query(doc(database, "jogosBolao", "QwTr3XjKwUsWcOu6Mwmg")), (snapshot) => {
+          setJogosCopa(snapshot.data().jogos.map((j) => ({ id: j.id, data: j.data() })));
         });
+        /*onSnapshot(query(collection(database, "jogosCopa"), orderBy("data")), (snapshot) => {
+          setJogosCopa(snapshot.docs.map((j) => ({ id: j.id, data: j.data() })));
+        });*/
       }
 
       if (resultadosUsuarios.length === 0) {

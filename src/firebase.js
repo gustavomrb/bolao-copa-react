@@ -33,6 +33,19 @@ const analytics = getAnalytics(app);
 const database = getFirestore(app);
 
 /*(async () => {
+  let jogosCopaNovo = { jogos: {} };
+
+  const jogosCopaSnap = await getDocs(collection(database, "jogosCopa"));
+  const jogosCopaJson = jogosCopaSnap.docs;
+
+  for (let jogoCopaJson of jogosCopaJson) {
+    jogosCopaNovo.jogos[jogoCopaJson.id] = jogoCopaJson.data();
+  }
+
+  await setDoc(doc(database, "jogosBolao", "QwTr3XjKwUsWcOu6Mwmg"), jogosCopaNovo);
+})();*/
+
+/*(async () => {
   const usersSnap = await getDocs(collection(database, "users"));
   const usersJson = usersSnap.docs;
   const resultadosSnap = await getDocs(collection(database, "resultadosUsuario"));
