@@ -108,6 +108,51 @@ function Regras() {
             </Grid>
             <Grid item>
               <Typography variant={"h6"} textAlign={"left"}>
+                Critérios de Desempate
+              </Typography>
+            </Grid>
+            <Grid item container spacing={0.5}>
+              <Grid item>
+                <Typography variant={"body2"} typography={{ fontWeight: "bold" }} textAlign={"left"}>
+                  1º:
+                </Typography>
+              </Grid>
+              <Grid item>
+                <Typography variant={"body2"}>Cravadas</Typography>
+              </Grid>
+            </Grid>
+            <Grid item container spacing={0.5}>
+              <Grid item>
+                <Typography variant={"body2"} typography={{ fontWeight: "bold" }} textAlign={"left"}>
+                  2º:
+                </Typography>
+              </Grid>
+              <Grid item>
+                <Typography variant={"body2"}>Acertou campeão</Typography>
+              </Grid>
+            </Grid>
+            <Grid item container spacing={0.5}>
+              <Grid item>
+                <Typography variant={"body2"} typography={{ fontWeight: "bold" }} textAlign={"left"}>
+                  3º:
+                </Typography>
+              </Grid>
+              <Grid item>
+                <Typography variant={"body2"}>Acertou artilheiro</Typography>
+              </Grid>
+            </Grid>
+            <Grid item container spacing={0.5}>
+              <Grid item>
+                <Typography variant={"body2"} typography={{ fontWeight: "bold" }} textAlign={"left"}>
+                  3º:
+                </Typography>
+              </Grid>
+              <Grid item>
+                <Typography variant={"body2"}>Pontos no mata-mata</Typography>
+              </Grid>
+            </Grid>
+            <Grid item>
+              <Typography variant={"h6"} textAlign={"left"}>
                 Premiação
               </Typography>
             </Grid>

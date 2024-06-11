@@ -5,26 +5,21 @@ import {
   Card,
   Grid,
   IconButton,
+  MenuItem,
+  Select,
   Snackbar,
   TextField,
   Typography,
   useMediaQuery,
 } from "@mui/material";
 import { useEffect, useState } from "react";
-import {
-  auth,
-  buscaJogosCopa,
-  buscarResultados,
-  buscaSelecoesCopa,
-  criarResultados,
-  salvarResultados,
-} from "./firebase";
-import { useNavigate } from "react-router-dom";
-import { useAuthState } from "react-firebase-hooks/auth";
+import { salvarResultados } from "./firebase";
 import { useTheme } from "@emotion/react";
 import { CalendarMonth, SortByAlphaRounded } from "@mui/icons-material";
 import convocadosJson from "./convocados.json";
 import selecoesJson from "./selecoes.json";
+import { useContext } from "react";
+import { GlobalContext } from "./App";
 
 const getConvocados = () => {
   const convocados = [];
@@ -55,70 +50,68 @@ const pegaHorario = (timestamp) => {
 };
 
 function MeuBolao() {
-  const [resultados, setResultados] = useState();
-  const [jogosCopa, setJogosCopa] = useState([]);
+  const [resultados, setResultados] = useState([]);
   const [jogosShow, setJogosShow] = useState([]);
   const [resultSalvo, setResultSalvo] = useState(false);
+  const [resultNaoSalvo, setResultNaoSalvo] = useState(false);
   const [sortValue, setSortValue] = useState("g");
-  const [selecoesCopa, setSelecoesCopa] = useState([]);
-  const navigate = useNavigate();
-  const [user] = useAuthState(auth);
   const [valueArtilheiro, setValueArtilheiro] = useState();
   const [valueCampeao, setValueCampeao] = useState();
+  const [faseAtual, setFaseAtual] = useState(1);
+
+  const { user, jogosCopa, resultadosUsuarios, selecoesCopa } = useContext(GlobalContext);
 
   const theme = useTheme();
   const isXs = useMediaQuery(theme.breakpoints.only("xs"));
 
-  const organizarPorGrupo = () => {
-    const organizadosGrupo = [];
-    const grupos = ["A", "B", "C", "D", "E", "F", "G", "H"];
-    for (let grupo of grupos) {
-      const grupoJson = { grupo: grupo, jogos: [] };
-      grupoJson.jogos = jogosCopa.filter((j) => j.data().grupo === grupo);
-      organizadosGrupo.push(grupoJson);
-    }
-    setJogosShow(organizadosGrupo);
-    setSortValue("g");
-  };
-
-  const organizarPorData = () => {
+  const organizarPorData = (fase) => {
+    fase = fase ? fase : faseAtual;
     const organizadosData = [];
-    const datas = [...new Set(jogosCopa.map((j) => j.data().data.toDate().toLocaleDateString("pt-BR")))];
+    console.log(fase);
+    const datas = [
+      ...new Set(
+        jogosCopa.filter((j) => j.data.fase === fase).map((j) => j.data.data.toDate().toLocaleDateString("pt-BR"))
+      ),
+    ];
+    console.log(datas);
 
     for (let data of datas) {
       const dataJson = { data: data, jogos: [] };
-      dataJson.jogos = jogosCopa.filter((j) => j.data().data.toDate().toLocaleDateString("pt-BR") === data);
+      dataJson.jogos = jogosCopa.filter(
+        (j) => j.data.data.toDate().toLocaleDateString("pt-BR") === data && j.data.fase === fase
+      );
       organizadosData.push(dataJson);
     }
     setJogosShow(organizadosData);
     setSortValue("d");
   };
 
+  const organizarPorGrupo = (fase) => {
+    fase = fase ? fase : faseAtual;
+    console.log("entrou organizar");
+    const organizadosGrupo = [];
+    const grupos = fase === 1 ? ["A", "B", "C", "D", "E", "F", "G", "H"] : ["A"];
+    for (let grupo of grupos) {
+      const grupoJson = { grupo: grupo, jogos: [] };
+      grupoJson.jogos = jogosCopa.filter((j) => j.data.grupo === grupo && j.data.fase === fase);
+      organizadosGrupo.push(grupoJson);
+    }
+    setJogosShow(organizadosGrupo);
+    setSortValue("g");
+  };
+
   useEffect(() => {
-    if (jogosCopa.length === 0) {
-      buscaJogosCopa().then((v) => {
-        setJogosCopa(v.docs);
-        buscarResultados(user).then((r) => {
-          if (r) {
-            setResultados(r);
-            setValueArtilheiro(convocados.find((c) => c.jogador === r.artilheiro));
-            setValueCampeao(selecoesJson.find((s) => s.nome === r.campeao));
-          } else {
-            criarResultados(v, user).then((r) => {
-              setResultados(r);
-            });
-          }
-        });
-      });
+    if (resultadosUsuarios.length > 0 && resultados.length === 0) {
+      const res = resultadosUsuarios.find((r) => r.id === user.uid).data;
+      setResultados(res);
+      setValueArtilheiro(res.artilheiro);
+      setValueCampeao(res.campeao);
     }
 
     if (jogosShow.length === 0 && jogosCopa.length > 0) {
       organizarPorGrupo();
     }
-    if (selecoesCopa.length === 0) {
-      buscaSelecoesCopa().then((v) => setSelecoesCopa(v.docs));
-    }
-  }, [navigate, jogosCopa]);
+  }, [jogosCopa]);
 
   const handleInputChange = (event, propertyName, idJogo) => {
     const newResultados = JSON.parse(JSON.stringify(resultados));
@@ -133,16 +126,63 @@ function MeuBolao() {
     setResultados(newResultados);
   };
 
+  const calculaPontosGrupo = (grupo) => {
+    let ptsGeral = 0;
+    const jogosGrupo = jogosCopa.filter((j) => j.data.grupo === grupo && j.data.fase === faseAtual);
+    for (let jogo of jogosGrupo) {
+      const ptsJogo = resultados.jogos[jogo.id].pontos;
+      if (ptsJogo !== "") {
+        ptsGeral += ptsJogo;
+      }
+    }
+    return ptsGeral;
+  };
+
+  const calculaPontosData = (data) => {
+    let ptsGeral = 0;
+    const jogosGrupo = jogosCopa.filter((j) => j.data.data.toDate().toLocaleDateString("pt-BR") === data);
+    for (let jogo of jogosGrupo) {
+      const ptsJogo = resultados.jogos[jogo.id].pontos;
+      if (ptsJogo !== "") {
+        ptsGeral += ptsJogo;
+      }
+    }
+    return ptsGeral;
+  };
+
   return (
     <Grid container justifyContent={"center"} alignItems={"center"}>
-      {jogosShow && resultados && selecoesCopa ? (
+      {jogosShow && resultados && selecoesCopa && resultadosUsuarios ? (
         <Grid item xs={12} sm={10} container direction={"column"}>
           <Grid item container xs={12} justifyContent={"end"} sx={{ pt: 1 }}>
+            <Grid item xs={4} sm={2} pb={1}>
+              <Select
+                value={faseAtual}
+                fullWidth
+                onChange={(e) => {
+                  const fase = parseInt(e.target.value);
+                  setFaseAtual(fase);
+                  organizarPorGrupo(fase);
+                }}
+                size={"small"}
+              >
+                <MenuItem value={1}>Primeira Fase</MenuItem>
+                <MenuItem value={2}>Oitavas de Final</MenuItem>
+                <MenuItem value={3}>Quartas de Final</MenuItem>
+                <MenuItem value={4}>Semi-Final</MenuItem>
+                <MenuItem value={5}>Final e 3 lugar</MenuItem>
+              </Select>
+            </Grid>
+            <Grid item ml={4} mr={"auto"} alignSelf={"center"} visibility={faseAtual === 1 ? "hidden" : "visible"}>
+              <Typography color={"red"}>{isXs ? "Apenas os 90 minutos!" : "Contam apenas os 90 minutos!"}</Typography>
+            </Grid>
             <Grid item>
-              <IconButton onClick={organizarPorGrupo}>
+              <IconButton onClick={() => organizarPorGrupo()}>
                 <SortByAlphaRounded />
               </IconButton>
-              <IconButton onClick={organizarPorData}>
+            </Grid>
+            <Grid>
+              <IconButton onClick={() => organizarPorData()}>
                 <CalendarMonth />
               </IconButton>
             </Grid>
@@ -184,8 +224,8 @@ function MeuBolao() {
                     <Grid container direction={"column"} spacing={2}>
                       {j.jogos.map((jo, k) => {
                         const resultado = resultados.jogos[jo.id];
-                        const time1 = selecoesCopa.find((s) => s.id === jo.data().times[0]);
-                        const time2 = selecoesCopa.find((s) => s.id === jo.data().times[1]);
+                        const time1 = selecoesCopa.find((s) => s.id === jo.data.times[0]);
+                        const time2 = selecoesCopa.find((s) => s.id === jo.data.times[1]);
                         return (
                           <Grid
                             item
@@ -198,24 +238,24 @@ function MeuBolao() {
                           >
                             <Grid item xs={4} sm={5} display={sortValue === "d" ? "none" : "block"}>
                               <Typography variant="body2">
-                                {isXs ? pegaDataCurta(jo.data().data) : pegaData(jo.data().data)}
+                                {isXs ? pegaDataCurta(jo.data.data) : pegaData(jo.data.data)}
                               </Typography>
                             </Grid>
                             <Grid item xs={3}>
-                              <Typography variant="body2">{pegaHorario(jo.data().data)}</Typography>
+                              <Typography variant="body2">{pegaHorario(jo.data.data)}</Typography>
                             </Grid>
                             <Grid item xs={1} sm={3} display={sortValue === "g" ? "none" : "block"}>
-                              <Typography variant="body2">{jo.data().grupo}</Typography>
+                              <Typography variant="body2">{jo.data.grupo}</Typography>
                             </Grid>
                             <Grid item xs={6.5} sm={5}>
-                              <Typography variant="body2">{time1.data().nome}</Typography>
+                              <Typography variant="body2">{time1.data.nome}</Typography>
                             </Grid>
                             <Grid item xs={1}>
                               <TextField
                                 variant="standard"
                                 size="small"
                                 margin="none"
-                                value={resultado.gols1}
+                                value={resultado.gols1 !== null ? resultado.gols1 : ""}
                                 inputProps={{
                                   inputMode: "numeric",
                                   pattern: "[0-9]",
@@ -224,7 +264,7 @@ function MeuBolao() {
                                 }}
                                 sx={{ typography: "body2" }}
                                 onChange={(e) => handleInputChange(e, "gols1", jo.id)}
-                                disabled
+                                disabled={jo.data.fase === 6 ? false : true}
                               />
                             </Grid>
                             <Grid item xs={1}>
@@ -235,7 +275,7 @@ function MeuBolao() {
                                 variant="standard"
                                 size="small"
                                 margin="none"
-                                value={resultado.gols2}
+                                value={resultado.gols2 !== null ? resultado.gols2 : ""}
                                 inputProps={{
                                   inputMode: "numeric",
                                   pattern: "[0-9]*",
@@ -243,19 +283,23 @@ function MeuBolao() {
                                   style: { textAlign: "center", fontSize: "0.875rem" },
                                 }}
                                 onChange={(e) => handleInputChange(e, "gols2", jo.id)}
-                                disabled
+                                disabled={jo.data.fase === 6 ? false : true}
                               />
                             </Grid>
                             <Grid item xs={6.5} sm={5}>
-                              <Typography variant="body2">{time2.data().nome}</Typography>
+                              <Typography variant="body2">{time2.data.nome}</Typography>
                             </Grid>
                             <Grid item xs={3}>
                               <Typography variant="body2">
-                                {jo.data().gols1 ? `${jo.data().gols1} x ${jo.data().gols2}` : "-"}
+                                {jo.data.gols1 === null || jo.data.gols1 === undefined
+                                  ? "-"
+                                  : `${jo.data.gols1} x ${jo.data.gols2}`}
                               </Typography>
                             </Grid>
                             <Grid item xs={3} sm={3}>
-                              <Typography variant="body2">{resultado.pontos ? resultado.pontos : "-"}</Typography>
+                              <Typography variant="body2">
+                                {resultado.pontos === "" ? "-" : resultado.pontos}
+                              </Typography>
                             </Grid>
                           </Grid>
                         );
@@ -265,7 +309,9 @@ function MeuBolao() {
                 </Grid>
                 <Grid item p={2} alignSelf={"end"}>
                   <Typography variant="body1">
-                    {sortValue === "g" ? `Pontos no Grupo ${j.grupo}:` : "Pontos no Dia:"}
+                    {sortValue === "g"
+                      ? `Pontos no Grupo ${j.grupo}: ${calculaPontosGrupo(j.grupo)}`
+                      : `Pontos no Dia: ${calculaPontosData(j.data)}`}
                   </Typography>
                 </Grid>
               </Grid>
@@ -302,9 +348,16 @@ function MeuBolao() {
             <Button
               variant="outlined"
               onClick={() => {
-                salvarResultados(resultados, user).then(setResultSalvo(true));
+                salvarResultados(resultados, user).then((salvou) => {
+                  if (salvou) {
+                    setResultSalvo(true);
+                  } else {
+                    setResultNaoSalvo(true);
+                  }
+                });
+                organizarPorGrupo();
               }}
-              disabled
+              disabled={faseAtual === 5 ? false : true}
             >
               Enviar Palpites
             </Button>
@@ -312,6 +365,11 @@ function MeuBolao() {
           <Snackbar open={resultSalvo} autoHideDuration={6000} onClose={() => setResultSalvo(false)}>
             <Alert variant="outlined" severity="success" sx={{ mb: 2 }} onClick={() => setResultSalvo(false)}>
               Resultados salvos com sucesso!
+            </Alert>
+          </Snackbar>
+          <Snackbar open={resultNaoSalvo} autoHideDuration={6000} onClose={() => setResultNaoSalvo(false)}>
+            <Alert variant="outlined" severity="error" sx={{ mb: 2 }} onClick={() => setResultNaoSalvo(false)}>
+              Passou do horário arrombado!
             </Alert>
           </Snackbar>
         </Grid>

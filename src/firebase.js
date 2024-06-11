@@ -1,7 +1,20 @@
 import { getAnalytics } from "firebase/analytics";
 import { initializeApp } from "firebase/app";
 import { createUserWithEmailAndPassword, getAuth, signInWithEmailAndPassword, signOut } from "firebase/auth";
-import { collection, doc, getDoc, getDocs, getFirestore, orderBy, query, setDoc, updateDoc } from "firebase/firestore";
+import {
+  addDoc,
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  getFirestore,
+  orderBy,
+  query,
+  setDoc,
+  Timestamp,
+  updateDoc,
+} from "firebase/firestore";
+import jogosCopa from "./jogosCopa.json";
 
 const firebaseConfig = {
   apiKey: "AIzaSyD4r2ZPEVjFTQ4EdhaNaS1b8tXvT_MTsok",
@@ -44,6 +57,41 @@ const database = getFirestore(app);
   }
 })();*/
 
+/*(async () => {
+  const selecoesCopa = (await getDocs(collection(database, "selecoesCopa"))).docs;
+  const idsJogos = [];
+  for (let jogoCopa of jogosCopa) {
+    const selecao1 = selecoesCopa.find((s) => s.data().nome === jogoCopa.times[0]).id;
+    const selecao2 = selecoesCopa.find((s) => s.data().nome === jogoCopa.times[1]).id;
+    const dia = parseInt(jogoCopa.data.split("/")[0]);
+    const horarioSplit = jogoCopa.horario.split(":");
+    const jogo = {
+      data: Timestamp.fromDate(new Date(2022, 11, dia, parseInt(horarioSplit[0]), 0, 0, 0)),
+      fase: jogoCopa.fase,
+      gols1: null,
+      gols2: null,
+      grupo: "A",
+      times: [selecao1, selecao2],
+    };
+
+    const docRef = await addDoc(collection(database, "jogosCopa"), jogo);
+    idsJogos.push(docRef.id);
+  }
+
+  const usuarios = (await getDocs(collection(database, "users"))).docs;
+  for (let usuario of usuarios) {
+    for (let idJogo of idsJogos) {
+      await updateDoc(doc(database, "resultadosUsuario", usuario.id), {
+        [`jogos.${idJogo}`]: { gols1: "", gols2: "", pontos: "" },
+      });
+    }
+
+    await updateDoc(doc(database, "users", usuario.id), {
+      resultadosFase1: false,
+    });
+  }
+})();*/
+
 const buscaJogosCopa = async () => {
   return getDocs(query(collection(database, "jogosCopa"), orderBy("data")));
 };
@@ -69,10 +117,6 @@ const buscarResultados = async (user) => {
   }
 };
 
-const buscarTodosResultados = async () => {
-  return getDocs(collection(database, "resultadosUsuario"));
-};
-
 const criarResultados = async (jogosCopa, user) => {
   const resultadosUsuario = {
     campeao: "",
@@ -87,21 +131,36 @@ const criarResultados = async (jogosCopa, user) => {
 };
 
 const salvarResultados = async (resultados, user) => {
-  await setDoc(doc(database, "resultadosUsuario", user.uid), resultados);
-  let resultadosCompletos = true;
-  for (let jogoId in resultados.jogos) {
-    const jogo = resultados.jogos[jogoId];
-    if (jogo.gols1 === "" || jogo.gols2 === "") {
-      resultadosCompletos = false;
-      break;
+  const dataAgora = new Date();
+  const dataPrimeiroJogo = new Date(2022, 11, 17, 12, 0, 0, 0);
+  if (dataAgora.getTime() < dataPrimeiroJogo.getTime()) {
+    await setDoc(doc(database, "resultadosUsuario", user.uid), resultados);
+    let resultadosCompletos = true;
+    for (let jogoId in resultados.jogos) {
+      const jogo = resultados.jogos[jogoId];
+      if (jogo.fase === 5 && (jogo.gols1 === null || jogo.gols2 === null)) {
+        resultadosCompletos = false;
+        break;
+      }
     }
+    const artilheiroCampeao = resultados.artilheiro !== "" && resultados.campeao !== "";
+    const userDoc = doc(database, "users", user.uid);
+    await updateDoc(userDoc, {
+      artilheiroCampeao: artilheiroCampeao,
+      resultadosFase1: resultadosCompletos,
+    });
+    return true;
   }
-  const artilheiroCampeao = resultados.artilheiro !== "" && resultados.campeao !== "";
-  const userDoc = doc(database, "users", user.uid);
-  return await updateDoc(userDoc, {
-    artilheiroCampeao: artilheiroCampeao,
-    resultadosFase1: resultadosCompletos,
-  });
+  return false;
+};
+
+const atualizaPontosUsuario = async (userId, idJogo, pontos) => {
+  const property = `jogos.${idJogo}.pontos`;
+  await updateDoc(doc(database, "resultadosUsuario", userId), { [property]: pontos });
+};
+
+const updateJogoCopa = async (idJogo, idData) => {
+  await setDoc(doc(database, "jogosCopa", idJogo), idData);
 };
 
 const criarUsuario = (email, password) => {
@@ -141,6 +200,7 @@ export {
   salvarResultados,
   criarUserBanco,
   buscaUsuarios,
-  buscarTodosResultados,
   buscaUsuario,
+  updateJogoCopa,
+  atualizaPontosUsuario,
 };

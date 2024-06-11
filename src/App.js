@@ -18,11 +18,12 @@ import {
   Typography,
 } from "@mui/material";
 import { Outlet, useNavigate } from "react-router-dom";
-import { auth, signOutUser } from "./firebase";
+import { auth, buscaJogosCopa, buscaSelecoesCopa, database, signOutUser } from "./firebase";
 import { LaptopChromebook, Toc, MenuRounded } from "@mui/icons-material";
 import { useAuthState } from "react-firebase-hooks/auth";
-import React, { useEffect } from "react";
+import React, { createContext, useEffect } from "react";
 import { useState } from "react";
+import { collection, onSnapshot, orderBy, query } from "firebase/firestore";
 
 const darkTheme = createTheme({
   palette: {
@@ -30,10 +31,43 @@ const darkTheme = createTheme({
   },
 });
 
+export const GlobalContext = createContext();
+
 function App() {
   const [user] = useAuthState(auth);
   const navigate = useNavigate();
   const [menuAberto, setMenuAberto] = useState(false);
+  const [jogosCopa, setJogosCopa] = useState([]);
+  const [resultadosUsuarios, setResultadosUsuarios] = useState([]);
+  const [selecoesCopa, setSelecoesCopa] = useState([]);
+  const [todosUsuarios, setTodosUsuarios] = useState([]);
+
+  useEffect(() => {
+    if (!user) {
+      navigate("../login");
+    }
+
+    if (user) {
+      if (jogosCopa.length === 0) {
+        console.log("buscouJogos");
+        onSnapshot(query(collection(database, "jogosCopa"), orderBy("data")), (snapshot) => {
+          setJogosCopa(snapshot.docs.map((j) => ({ id: j.id, data: j.data() })));
+        });
+      }
+
+      if (resultadosUsuarios.length === 0) {
+        console.log("buscouResultados");
+        onSnapshot(collection(database, "resultadosUsuario"), (snapshot) => {
+          setResultadosUsuarios(snapshot.docs.map((j) => ({ id: j.id, data: j.data() })));
+        });
+      }
+
+      if (selecoesCopa.length === 0) {
+        console.log("buscouSelecoes");
+        buscaSelecoesCopa().then((v) => setSelecoesCopa(v.docs.map((s) => ({ id: s.id, data: s.data() }))));
+      }
+    }
+  }, [user]);
 
   const menuLateral = (
     <React.Fragment>
@@ -53,6 +87,48 @@ function App() {
               <LaptopChromebook />
             </ListItemIcon>
             <ListItemText primary="Meu Bolão" />
+          </ListItemButton>
+        </ListItem>
+        <ListItem
+          disablePadding
+          onClick={() => {
+            setMenuAberto(false);
+            navigate("../classificacao");
+          }}
+        >
+          <ListItemButton>
+            <ListItemIcon>
+              <Toc />
+            </ListItemIcon>
+            <ListItemText primary="Classificação" />
+          </ListItemButton>
+        </ListItem>
+        <ListItem
+          disablePadding
+          onClick={() => {
+            setMenuAberto(false);
+            navigate("../secada");
+          }}
+        >
+          <ListItemButton>
+            <ListItemIcon>
+              <Toc />
+            </ListItemIcon>
+            <ListItemText primary="Área da Secada" />
+          </ListItemButton>
+        </ListItem>
+        <ListItem
+          disablePadding
+          onClick={() => {
+            setMenuAberto(false);
+            navigate("../resultados");
+          }}
+        >
+          <ListItemButton>
+            <ListItemIcon>
+              <Toc />
+            </ListItemIcon>
+            <ListItemText primary="Resultados" />
           </ListItemButton>
         </ListItem>
         <ListItem
@@ -83,20 +159,6 @@ function App() {
             <ListItemText primary="Regras" />
           </ListItemButton>
         </ListItem>
-        {/*<ListItem
-          disablePadding
-          onClick={() => {
-            setMenuAberto(false);
-            navigate("../resultados");
-          }}
-        >
-          <ListItemButton>
-            <ListItemIcon>
-              <Toc />
-            </ListItemIcon>
-            <ListItemText primary="Resultados" />
-          </ListItemButton>
-        </ListItem>*/}
         <ListItem disablePadding sx={{ flexDirection: "column", justifyContent: "center", mt: 1, gap: 0.5 }}>
           <Typography variant={"body1"}>Pix para pagamento</Typography>
           <Typography variant={"body2"}>21997586852</Typography>
@@ -107,86 +169,94 @@ function App() {
     </React.Fragment>
   );
 
-  useEffect(() => {
-    if (!user) {
-      navigate("../login");
-    }
-  }, [user, navigate]);
-
   return (
     <ThemeProvider theme={darkTheme}>
       <CssBaseline />
       {user ? (
-        <Grid container height={"100vh"}>
-          <Grid
-            item
-            container
-            sm={1.5}
-            display={{ xs: "none", md: "flex" }}
-            sx={{ backgroundColor: "rgba(255, 255, 255, 0.03)" }}
-          >
-            <Grid item xs={12} sx={{ py: 3 }}>
-              {menuLateral}
+        <GlobalContext.Provider
+          value={{
+            user,
+            jogosCopa,
+            setJogosCopa,
+            resultadosUsuarios,
+            setResultadosUsuarios,
+            selecoesCopa,
+            setSelecoesCopa,
+            todosUsuarios,
+            setTodosUsuarios,
+          }}
+        >
+          <Grid container height={"100vh"}>
+            <Grid
+              item
+              container
+              sm={1.5}
+              display={{ xs: "none", md: "flex" }}
+              sx={{ backgroundColor: "rgba(255, 255, 255, 0.03)" }}
+            >
+              <Grid item xs={12} sx={{ py: 3 }}>
+                {menuLateral}
+              </Grid>
+            </Grid>
+            <Grid
+              item
+              sm={1.5}
+              sx={{ backgroundColor: "rgba(255, 255, 255, 0.03)", display: { xs: "block", md: "none" } }}
+            >
+              <Drawer
+                variant="temporary"
+                open={menuAberto}
+                onClose={() => setMenuAberto(false)}
+                ModalProps={{
+                  keepMounted: true,
+                }}
+                sx={{
+                  display: { xs: "block", md: "none" },
+                }}
+              >
+                {menuLateral}
+              </Drawer>
+            </Grid>
+            <Grid item xs={12} md={10.5}>
+              <header>
+                <Grid container sx={{ py: 3, borderBottom: 1 }} justifyContent={"end"}>
+                  <Grid
+                    item
+                    xs="auto"
+                    sx={{ mr: "auto", ml: 2 }}
+                    alignSelf={"center"}
+                    display={{ sx: "block", md: "none" }}
+                  >
+                    <Box onClick={() => setMenuAberto(true)}>
+                      <MenuRounded fontSize="large" />
+                    </Box>
+                  </Grid>
+                  <Grid item xs="auto">
+                    <Avatar>{user.displayName ? user.displayName[0] : "A"}</Avatar>
+                  </Grid>
+                  <Grid item xs="auto" sx={{ ml: 1, mr: 3 }} alignSelf={"center"}>
+                    <Typography variant={"body2"}>{user.displayName}</Typography>
+                  </Grid>
+                  <Grid item xs="auto" sx={{ pr: { xs: 2, sm: 5 } }} alignSelf={"center"}>
+                    <Button
+                      variant="outlined"
+                      onClick={() => {
+                        signOutUser().then(() => navigate("../login"));
+                      }}
+                    >
+                      Logout
+                    </Button>
+                  </Grid>
+                </Grid>
+              </header>
+              <div className="App">
+                <Container maxWidth="lg">
+                  <Outlet context={[user]} />
+                </Container>
+              </div>
             </Grid>
           </Grid>
-          <Grid
-            item
-            sm={1.5}
-            sx={{ backgroundColor: "rgba(255, 255, 255, 0.03)", display: { xs: "block", md: "none" } }}
-          >
-            <Drawer
-              variant="temporary"
-              open={menuAberto}
-              onClose={() => setMenuAberto(false)}
-              ModalProps={{
-                keepMounted: true,
-              }}
-              sx={{
-                display: { xs: "block", md: "none" },
-              }}
-            >
-              {menuLateral}
-            </Drawer>
-          </Grid>
-          <Grid item xs={12} md={10.5}>
-            <header>
-              <Grid container sx={{ py: 3, borderBottom: 1 }} justifyContent={"end"}>
-                <Grid
-                  item
-                  xs="auto"
-                  sx={{ mr: "auto", ml: 2 }}
-                  alignSelf={"center"}
-                  display={{ sx: "block", md: "none" }}
-                >
-                  <Box onClick={() => setMenuAberto(true)}>
-                    <MenuRounded fontSize="large" />
-                  </Box>
-                </Grid>
-                <Grid item xs="auto">
-                  <Avatar>{user.displayName ? user.displayName[0] : "A"}</Avatar>
-                </Grid>
-                <Grid item xs="auto" sx={{ ml: 1, mr: 3 }} alignSelf={"center"}>
-                  <Typography variant={"body2"}>{user.displayName}</Typography>
-                </Grid>
-                <Grid item xs="auto" sx={{ pr: { xs: 2, sm: 5 } }} alignSelf={"center"}>
-                  <Button
-                    variant="outlined"
-                    onClick={() => {
-                      signOutUser().then(() => navigate("../login"));
-                    }}
-                  >
-                    Logout
-                  </Button>
-                </Grid>
-              </Grid>
-            </header>
-            <div className="App">
-              <Container maxWidth="lg">
-                <Outlet />
-              </Container>
-            </div>
-          </Grid>
-        </Grid>
+        </GlobalContext.Provider>
       ) : null}
     </ThemeProvider>
   );
