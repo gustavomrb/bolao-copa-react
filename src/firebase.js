@@ -11,6 +11,7 @@ import {
   orderBy,
   query,
   setDoc,
+  setDocs,
   Timestamp,
   updateDoc,
 } from "firebase/firestore";
@@ -43,6 +44,22 @@ const database = getFirestore(app);
   }
 
   await setDoc(doc(database, "jogosBolao", "QwTr3XjKwUsWcOu6Mwmg"), jogosCopaNovo);
+})();*/
+
+/*(async () => {
+  const resultadosUsuarioSnap = await getDocs(collection(database, "resultadosUsuario"));
+  const resultadosUsuarioJson = resultadosUsuarioSnap.docs;
+
+  for (let resultadoUsuarioJson of resultadosUsuarioJson) {
+    let resultadoUsuarioData = resultadoUsuarioJson.data();
+    let resultadoUsuarioNovo = {};
+    resultadoUsuarioNovo.boloes = {};
+    resultadoUsuarioNovo.boloes["QwTr3XjKwUsWcOu6Mwmg"] = {};
+    resultadoUsuarioNovo.boloes["QwTr3XjKwUsWcOu6Mwmg"].artilheiro = resultadoUsuarioData.artilheiro;
+    resultadoUsuarioNovo.boloes["QwTr3XjKwUsWcOu6Mwmg"].campeao = resultadoUsuarioData.campeao;
+    resultadoUsuarioNovo.boloes["QwTr3XjKwUsWcOu6Mwmg"].jogos = resultadoUsuarioData.jogos;
+    await setDoc(doc(database, "resultadosUsuarioBoloes", resultadoUsuarioJson.id), resultadoUsuarioNovo);
+  }
 })();*/
 
 /*(async () => {

@@ -23,7 +23,7 @@ import { LaptopChromebook, Toc, MenuRounded } from "@mui/icons-material";
 import { useAuthState } from "react-firebase-hooks/auth";
 import React, { createContext, useEffect } from "react";
 import { useState } from "react";
-import { collection, onSnapshot, orderBy, query } from "firebase/firestore";
+import { collection, onSnapshot, orderBy, query, doc } from "firebase/firestore";
 
 const darkTheme = createTheme({
   palette: {
@@ -50,8 +50,13 @@ function App() {
     if (user) {
       if (jogosCopa.length === 0) {
         console.log("buscouJogos");
-        onSnapshot(query(doc(database, "jogosBolao", "QwTr3XjKwUsWcOu6Mwmg")), (snapshot) => {
-          setJogosCopa(snapshot.data().jogos.map((j) => ({ id: j.id, data: j.data() })));
+        onSnapshot(doc(database, "jogosBolao", "QwTr3XjKwUsWcOu6Mwmg"), (snapshot) => {
+          const jogosCopaArr = [];
+          const mapaJogosCopa = snapshot.data().jogos;
+          for (let idJogoCopa in mapaJogosCopa) {
+            jogosCopaArr.push({ id: idJogoCopa, data: mapaJogosCopa[idJogoCopa] });
+          }
+          setJogosCopa(jogosCopaArr);
         });
         /*onSnapshot(query(collection(database, "jogosCopa"), orderBy("data")), (snapshot) => {
           setJogosCopa(snapshot.docs.map((j) => ({ id: j.id, data: j.data() })));
