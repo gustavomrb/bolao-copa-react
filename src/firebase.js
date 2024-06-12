@@ -50,16 +50,14 @@ const database = getFirestore(app);
   const resultadosUsuarioSnap = await getDocs(collection(database, "resultadosUsuario"));
   const resultadosUsuarioJson = resultadosUsuarioSnap.docs;
 
-  for (let resultadoUsuarioJson of resultadosUsuarioJson) {
-    let resultadoUsuarioData = resultadoUsuarioJson.data();
-    let resultadoUsuarioNovo = {};
-    resultadoUsuarioNovo.boloes = {};
-    resultadoUsuarioNovo.boloes["QwTr3XjKwUsWcOu6Mwmg"] = {};
-    resultadoUsuarioNovo.boloes["QwTr3XjKwUsWcOu6Mwmg"].artilheiro = resultadoUsuarioData.artilheiro;
-    resultadoUsuarioNovo.boloes["QwTr3XjKwUsWcOu6Mwmg"].campeao = resultadoUsuarioData.campeao;
-    resultadoUsuarioNovo.boloes["QwTr3XjKwUsWcOu6Mwmg"].jogos = resultadoUsuarioData.jogos;
-    await setDoc(doc(database, "resultadosUsuarioBoloes", resultadoUsuarioJson.id), resultadoUsuarioNovo);
+  let resultadoUsuarioNovo = {};
+  resultadoUsuarioNovo.usuarios = {}
+
+  for(let resultadoUsuarioJson of resultadosUsuarioJson) {
+    resultadoUsuarioNovo.usuarios[resultadoUsuarioJson.id] = resultadoUsuarioJson.data();
   }
+
+  await setDoc(doc(database, "resultadosUsuariosBoloes", "QwTr3XjKwUsWcOu6Mwmg"), resultadoUsuarioNovo);
 })();*/
 
 /*(async () => {
@@ -164,7 +162,9 @@ const salvarResultados = async (resultados, user) => {
   const dataAgora = new Date();
   const dataPrimeiroJogo = new Date(2022, 11, 17, 12, 0, 0, 0);
   if (dataAgora.getTime() < dataPrimeiroJogo.getTime()) {
-    await setDoc(doc(database, "resultadosUsuario", user.uid), resultados);
+    await updateDoc(doc(database, "resultadosUsuariosBoloes", "QwTr3XjKwUsWcOu6Mwmg"), {
+      [user.uid]: resultados
+    });
     let resultadosCompletos = true;
     for (let jogoId in resultados.jogos) {
       const jogo = resultados.jogos[jogoId];
@@ -182,6 +182,27 @@ const salvarResultados = async (resultados, user) => {
     return true;
   }
   return false;
+  /*const dataAgora = new Date();
+  const dataPrimeiroJogo = new Date(2022, 11, 17, 12, 0, 0, 0);
+  if (dataAgora.getTime() < dataPrimeiroJogo.getTime()) {
+    await setDoc(doc(database, "resultadosUsuario", user.uid), resultados);
+    let resultadosCompletos = true;
+    for (let jogoId in resultados.jogos) {
+      const jogo = resultados.jogos[jogoId];
+      if (jogo.fase === 5 && (jogo.gols1 === null || jogo.gols2 === null)) {
+        resultadosCompletos = false;
+        break;
+      }
+    }
+    const artilheiroCampeao = resultados.artilheiro !== "" && resultados.campeao !== "";
+    const userDoc = doc(database, "users", user.uid);
+    await updateDoc(userDoc, {
+      artilheiroCampeao: artilheiroCampeao,
+      resultadosFase1: resultadosCompletos,
+    });
+    return true;
+  }
+  return false;*/
 };
 
 const atualizaPontosUsuario = async (userId, idJogo, pontos) => {

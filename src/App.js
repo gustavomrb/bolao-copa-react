@@ -65,9 +65,17 @@ function App() {
 
       if (resultadosUsuarios.length === 0) {
         console.log("buscouResultados");
-        onSnapshot(collection(database, "resultadosUsuario"), (snapshot) => {
+        onSnapshot(doc(database, "resultadosUsuariosBoloes", "QwTr3XjKwUsWcOu6Mwmg"), (snapshot) => {
+          const resUsuArr = [];
+          const mapaResUsu = snapshot.data().usuarios;
+          for (let idUser in mapaResUsu) {
+            resUsuArr.push({ id: idUser, data: mapaResUsu[idUser] });
+          }
+          setResultadosUsuarios(resUsuArr);
+        })
+        /*onSnapshot(collection(database, "resultadosUsuario"), (snapshot) => {
           setResultadosUsuarios(snapshot.docs.map((j) => ({ id: j.id, data: j.data() })));
-        });
+        });*/
       }
 
       if (selecoesCopa.length === 0) {
