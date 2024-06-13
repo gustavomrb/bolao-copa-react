@@ -93,7 +93,15 @@ function App() {
 
       if (boloes.length > 0) {
         console.log("buscouSelecoes");
-        buscaSelecoesCopa().then((v) => setSelecoesCopa(v.docs.map((s) => ({ id: s.id, data: s.data() }))));
+        onSnapshot(doc(database, "equipesBolao", bolaoAtual), (snapshot) => {
+          const equipesArr = [];
+          const mapaEquipes = snapshot.data().equipes;
+          for (let idUser in mapaEquipes) {
+            equipesArr.push({ id: idUser, data: mapaEquipes[idUser] });
+          }
+          setSelecoesCopa(equipesArr);
+        });
+        /*buscaSelecoesCopa().then((v) => setSelecoesCopa(v.docs.map((s) => ({ id: s.id, data: s.data() }))));*/
       }
     }
   }, [user, bolaoAtual]);
@@ -221,6 +229,8 @@ function App() {
             setSelecoesCopa,
             todosUsuarios,
             setTodosUsuarios,
+            boloes,
+            bolaoAtual
           }}
         >
           <Grid container height={"100vh"}>

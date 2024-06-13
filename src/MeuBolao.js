@@ -59,7 +59,7 @@ function MeuBolao() {
   const [valueCampeao, setValueCampeao] = useState();
   const [faseAtual, setFaseAtual] = useState(1);
 
-  const { user, jogosCopa, resultadosUsuarios, selecoesCopa } = useContext(GlobalContext);
+  const { user, jogosCopa, resultadosUsuarios, selecoesCopa, boloes, bolaoAtual } = useContext(GlobalContext);
 
   const theme = useTheme();
   const isXs = useMediaQuery(theme.breakpoints.only("xs"));
@@ -67,19 +67,17 @@ function MeuBolao() {
   const organizarPorData = (fase) => {
     fase = fase ? fase : faseAtual;
     const organizadosData = [];
-    console.log(fase);
-    const datas = [
-      ...new Set(
+    const datas = 
+      [...new Set(
         jogosCopa.filter((j) => j.data.fase === fase).map((j) => j.data.data.toDate().toLocaleDateString("pt-BR"))
-      ),
-    ];
+      )].sort();
     console.log(datas);
 
     for (let data of datas) {
       const dataJson = { data: data, jogos: [] };
       dataJson.jogos = jogosCopa.filter(
         (j) => j.data.data.toDate().toLocaleDateString("pt-BR") === data && j.data.fase === fase
-      );
+      ).sort((a,b) => a.data.data - b.data.data);
       organizadosData.push(dataJson);
     }
     setJogosShow(organizadosData);
@@ -90,10 +88,10 @@ function MeuBolao() {
     fase = fase ? fase : faseAtual;
     console.log("entrou organizar");
     const organizadosGrupo = [];
-    const grupos = fase === 1 ? ["A", "B", "C", "D", "E", "F", "G", "H"] : ["A"];
+    const grupos = fase === 1 ? [...new Set(jogosCopa.map(item => item.data.grupo))].sort() : ["A"];
     for (let grupo of grupos) {
       const grupoJson = { grupo: grupo, jogos: [] };
-      grupoJson.jogos = jogosCopa.filter((j) => j.data.grupo === grupo && j.data.fase === fase);
+      grupoJson.jogos = jogosCopa.filter((j) => j.data.grupo === grupo && j.data.fase === fase).sort((a,b) => a.data.data.toDate() - b.data.data.toDate());
       organizadosGrupo.push(grupoJson);
     }
     setJogosShow(organizadosGrupo);
@@ -224,6 +222,7 @@ function MeuBolao() {
                     <Grid container direction={"column"} spacing={2}>
                       {j.jogos.map((jo, k) => {
                         const resultado = resultados.jogos[jo.id];
+                        console.log(resultados);
                         const time1 = selecoesCopa.find((s) => s.id === jo.data.times[0]);
                         const time2 = selecoesCopa.find((s) => s.id === jo.data.times[1]);
                         return (
@@ -264,7 +263,8 @@ function MeuBolao() {
                                 }}
                                 sx={{ typography: "body2" }}
                                 onChange={(e) => handleInputChange(e, "gols1", jo.id)}
-                                disabled={jo.data.fase === 6 ? false : true}
+                                //disabled={jo.data.fase === 6 ? false : true}
+                                disabled={new Date() > jogosShow[0].jogos[0].data.data.toDate()}
                               />
                             </Grid>
                             <Grid item xs={1}>
@@ -283,7 +283,8 @@ function MeuBolao() {
                                   style: { textAlign: "center", fontSize: "0.875rem" },
                                 }}
                                 onChange={(e) => handleInputChange(e, "gols2", jo.id)}
-                                disabled={jo.data.fase === 6 ? false : true}
+                                //disabled={jo.data.fase === 6 ? false : true}
+                                disabled={new Date() > jogosShow[0].jogos[0].data.data.toDate()}
                               />
                             </Grid>
                             <Grid item xs={6.5} sm={5}>
@@ -348,7 +349,7 @@ function MeuBolao() {
             <Button
               variant="outlined"
               onClick={() => {
-                salvarResultados(resultados, user).then((salvou) => {
+                salvarResultados(resultados, user, bolaoAtual).then((salvou) => {
                   if (salvou) {
                     setResultSalvo(true);
                   } else {
@@ -357,7 +358,7 @@ function MeuBolao() {
                 });
                 organizarPorGrupo();
               }}
-              disabled={faseAtual === 5 ? false : true}
+              disabled={faseAtual === 1 ? false : true}
             >
               Enviar Palpites
             </Button>

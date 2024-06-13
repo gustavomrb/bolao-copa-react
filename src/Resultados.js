@@ -29,7 +29,7 @@ function Resultados() {
   const [userBanco, setUserBanco] = useState(null);
   const [faseAtual, setFaseAtual] = useState(1);
 
-  const { user, jogosCopa, resultadosUsuarios, selecoesCopa, todosUsuarios, setTodosUsuarios } =
+  const { user, jogosCopa, resultadosUsuarios, selecoesCopa, todosUsuarios, setTodosUsuarios, bolaoAtual } =
     useContext(GlobalContext);
 
   const theme = useTheme();
@@ -38,17 +38,16 @@ function Resultados() {
   const organizarPorData = (fase) => {
     fase = fase ? fase : faseAtual;
     const organizadosData = [];
-    const datas = [
-      ...new Set(
+    const datas = 
+      [...new Set(
         jogosCopaNew.filter((j) => j.data.fase === fase).map((j) => j.data.data.toDate().toLocaleDateString("pt-BR"))
-      ),
-    ];
+      )].sort();
 
     for (let data of datas) {
       const dataJson = { data: data, jogos: [] };
       dataJson.jogos = jogosCopaNew.filter(
         (j) => j.data.data.toDate().toLocaleDateString("pt-BR") === data && j.data.fase === fase
-      );
+      ).sort((a,b) => a.data.data - b.data.data);
       organizadosData.push(dataJson);
     }
     setJogosShow(organizadosData);
@@ -58,10 +57,10 @@ function Resultados() {
   const organizarPorGrupo = (fase) => {
     fase = fase ? fase : faseAtual;
     const organizadosGrupo = [];
-    const grupos = fase === 1 ? ["A", "B", "C", "D", "E", "F", "G", "H"] : ["A"];
+    const grupos = fase === 1 ? [...new Set(jogosCopaNew.map(item => item.data.grupo))].sort() : ["A"];
     for (let grupo of grupos) {
       const grupoJson = { grupo: grupo, jogos: [] };
-      grupoJson.jogos = jogosCopaNew.filter((j) => j.data.grupo === grupo && j.data.fase === fase);
+      grupoJson.jogos = jogosCopaNew.filter((j) => j.data.grupo === grupo && j.data.fase === fase).sort((a,b) => a.data.data.toDate() - b.data.data.toDate());
       organizadosGrupo.push(grupoJson);
     }
     setJogosShow(organizadosGrupo);
@@ -89,12 +88,12 @@ function Resultados() {
         (jogoCopaOld.data.gols1 !== jogoCopaNew.data.gols1 || jogoCopaOld.data.gols2 !== jogoCopaNew.data.gols2)
       ) {
         console.log("entrou");
-        updateJogoCopa(jogoCopaNew.id, jogoCopaNew.data);
+        updateJogoCopa(bolaoAtual, jogoCopaNew.id, jogoCopaNew.data);
         for (let resUsuario of resultadosUsuarios) {
           if (jogoCopaNew.data.gols1 === null) {
             const jogoUsuario = resUsuario.data.jogos[jogoCopaNew.id];
             jogoUsuario.pontos = "";
-            atualizaPontosUsuario(resUsuario.id, jogoCopaNew.id, "");
+            atualizaPontosUsuario(bolaoAtual, resUsuario.id, jogoCopaNew.id, "");
           } else {
             let pontos = 0;
             const jogoUsuario = resUsuario.data.jogos[jogoCopaNew.id];
@@ -117,7 +116,7 @@ function Resultados() {
               pontos = 2;
             }
             jogoUsuario.pontos = pontos;
-            atualizaPontosUsuario(resUsuario.id, jogoCopaNew.id, pontos);
+            atualizaPontosUsuario(bolaoAtual, resUsuario.id, jogoCopaNew.id, pontos);
           }
         }
       }

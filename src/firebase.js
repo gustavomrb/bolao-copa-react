@@ -17,6 +17,7 @@ import {
 } from "firebase/firestore";
 import jogosCopa from "./jogosCopa.json";
 import selecoes from "./selecoes.json";
+import { update } from "firebase/database";
 
 const firebaseConfig = {
   apiKey: "AIzaSyD4r2ZPEVjFTQ4EdhaNaS1b8tXvT_MTsok",
@@ -38,12 +39,13 @@ const database = getFirestore(app);
   let equipesBolaoNovo = { equipes: {} };
 
   for (let selecao of selecoes) {
-    equipesBolaoNovo.equipes[database.collection("equipesBolao").doc().id] = selecao;
+    equipesBolaoNovo.equipes[doc(collection(database, "equipesBolao")).id] = selecao;
   }
 
   await setDoc(doc(database, "equipesBolao", "De1Xl4hSYBWbqHLjAjDp"), equipesBolaoNovo);
 })();*/
 
+//Novo modo de adicionar equipes.
 /*(async () => {
   let equipesBolaoNovo = { equipes: {} };
 
@@ -57,6 +59,7 @@ const database = getFirestore(app);
   await setDoc(doc(database, "equipesBolao", "QwTr3XjKwUsWcOu6Mwmg"), equipesBolaoNovo);
 })();*/
 
+//Migração de jogosCopa para jogosBolao
 /*(async () => {
   let jogosCopaNovo = { jogos: {} };
 
@@ -70,6 +73,7 @@ const database = getFirestore(app);
   await setDoc(doc(database, "jogosBolao", "QwTr3XjKwUsWcOu6Mwmg"), jogosCopaNovo);
 })();*/
 
+//Migração de resultadosUsuario para resultadosUsuariosBoloes.
 /*(async () => {
   const resultadosUsuarioSnap = await getDocs(collection(database, "resultadosUsuario"));
   const resultadosUsuarioJson = resultadosUsuarioSnap.docs;
@@ -84,6 +88,7 @@ const database = getFirestore(app);
   await setDoc(doc(database, "resultadosUsuariosBoloes", "QwTr3XjKwUsWcOu6Mwmg"), resultadoUsuarioNovo);
 })();*/
 
+//Atualiza se pessoa mandou todos os resultados e artilheiro e campeão.
 /*(async () => {
   const usersSnap = await getDocs(collection(database, "users"));
   const usersJson = usersSnap.docs;
@@ -109,6 +114,51 @@ const database = getFirestore(app);
   }
 })();*/
 
+/*(async () => {
+  let equipesBolao = await getDoc(doc(database, "equipesBolao", "De1Xl4hSYBWbqHLjAjDp"));
+  equipesBolao = new Map(Object.entries(equipesBolao.data().equipes));
+  console.log(jogosCopa);
+  const idsJogos = [];
+  for (let jogoCopa of jogosCopa) {
+    let selecao1, selecao2 = null;
+    for(let [id, equipe] of equipesBolao) {
+      if(jogoCopa.times[0] === equipe.nome) selecao1 = id;
+      if(jogoCopa.times[1] === equipe.nome) selecao2 = id;
+      if(selecao1 && selecao2) break;
+    }
+
+    const dataSplit = jogoCopa.data.split("/").map(v => parseInt(v));
+    const horarioSplit = jogoCopa.horario.split(":").map(v => parseInt(v));
+    const jogo = {
+      data: Timestamp.fromDate(new Date(dataSplit[2], dataSplit[1], dataSplit[0], horarioSplit[0], horarioSplit[1], 0, 0)),
+      fase: jogoCopa.fase,
+      gols1: null,
+      gols2: null,
+      grupo: jogoCopa.grupo,
+      times: [selecao1, selecao2],
+    };
+
+    const idJogo = doc(collection(database, "equipesBolao")).id
+    await updateDoc(doc(database, "jogosBolao", "De1Xl4hSYBWbqHLjAjDp"), { [`jogos.${idJogo}`] : jogo });
+    console.log("fez update")
+    idsJogos.push(idJogo);
+  }
+
+  const usuarios = (await getDocs(collection(database, "users"))).docs;
+  for (let usuario of usuarios) {
+    for (let idJogo of idsJogos) {
+      await updateDoc(doc(database, "resultadosUsuariosBoloes", "De1Xl4hSYBWbqHLjAjDp"), {
+        [`usuarios.${usuario.id}.jogos.${idJogo}`]: { gols1: "", gols2: "", pontos: "" },
+      });
+    }
+
+    /*await updateDoc(doc(database, "users", usuario.id), {
+      resultadosFase1: false,
+    });
+  }
+})();*/
+
+//Cria jogosCopa e resultadosUsuarios para um bolão.
 /*(async () => {
   const selecoesCopa = (await getDocs(collection(database, "selecoesCopa"))).docs;
   const idsJogos = [];
@@ -182,14 +232,14 @@ const criarResultados = async (jogosCopa, user) => {
   return resultadosUsuario;
 };
 
-const salvarResultados = async (resultados, user) => {
+const salvarResultados = async (resultados, user, bolao) => {
   const dataAgora = new Date();
-  const dataPrimeiroJogo = new Date(2022, 11, 17, 12, 0, 0, 0);
+  const dataPrimeiroJogo = new Date(2024, 6, 13, 16, 0, 0, 0);
   if (dataAgora.getTime() < dataPrimeiroJogo.getTime()) {
-    await updateDoc(doc(database, "resultadosUsuariosBoloes", "QwTr3XjKwUsWcOu6Mwmg"), {
-      [user.uid]: resultados,
+    await updateDoc(doc(database, "resultadosUsuariosBoloes", bolao), {
+      [`usuarios.${user.uid}`]: resultados,
     });
-    let resultadosCompletos = true;
+    /*let resultadosCompletos = true;
     for (let jogoId in resultados.jogos) {
       const jogo = resultados.jogos[jogoId];
       if (jogo.fase === 5 && (jogo.gols1 === null || jogo.gols2 === null)) {
@@ -202,7 +252,7 @@ const salvarResultados = async (resultados, user) => {
     await updateDoc(userDoc, {
       artilheiroCampeao: artilheiroCampeao,
       resultadosFase1: resultadosCompletos,
-    });
+    });*/
     return true;
   }
   return false;
@@ -229,17 +279,17 @@ const salvarResultados = async (resultados, user) => {
   return false;*/
 };
 
-const atualizaPontosUsuario = async (userId, idJogo, pontos) => {
+const atualizaPontosUsuario = async (idBolao, userId, idJogo, pontos) => {
   const property = `usuarios.${userId}.jogos.${idJogo}.pontos`;
-  await updateDoc(doc(database, "resultadosUsuariosBoloes", "QwTr3XjKwUsWcOu6Mwmg"), {
+  await updateDoc(doc(database, "resultadosUsuariosBoloes", idBolao), {
     [property]: pontos,
   });
   /*const property = `jogos.${idJogo}.pontos`;
   await updateDoc(doc(database, "resultadosUsuario", userId), { [property]: pontos });*/
 };
 
-const updateJogoCopa = async (idJogo, idData) => {
-  await setDoc(doc(database, "jogosCopa", idJogo), idData);
+const updateJogoCopa = async (idBolao, idJogo, idData) => {
+  await updateDoc(doc(database, "jogosBolao", idBolao), {[`jogos.${idJogo}`] : idData});
 };
 
 const criarUsuario = (email, password) => {
