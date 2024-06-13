@@ -7,12 +7,16 @@ import {
   createTheme,
   CssBaseline,
   Drawer,
+  FormControl,
   Grid,
+  InputLabel,
   List,
   ListItem,
   ListItemButton,
   ListItemIcon,
   ListItemText,
+  MenuItem,
+  Select,
   ThemeProvider,
   Toolbar,
   Typography,
@@ -41,6 +45,8 @@ function App() {
   const [resultadosUsuarios, setResultadosUsuarios] = useState([]);
   const [selecoesCopa, setSelecoesCopa] = useState([]);
   const [todosUsuarios, setTodosUsuarios] = useState([]);
+  const [boloes, setBoloes] = useState([]);
+  const [bolaoAtual, setBolaoAtual] = useState("");
 
   useEffect(() => {
     if (!user) {
@@ -48,9 +54,16 @@ function App() {
     }
 
     if (user) {
-      if (jogosCopa.length === 0) {
+      if (boloes.length === 0) {
+        console.log("buscouBoloes");
+        onSnapshot(collection(database, "boloes"), (snapshot) => {
+          setBoloes(snapshot.docs.map((j) => ({ id: j.id, data: j.data() })));
+        });
+      }
+
+      if (boloes.length > 0) {
         console.log("buscouJogos");
-        onSnapshot(doc(database, "jogosBolao", "QwTr3XjKwUsWcOu6Mwmg"), (snapshot) => {
+        onSnapshot(doc(database, "jogosBolao", bolaoAtual), (snapshot) => {
           const jogosCopaArr = [];
           const mapaJogosCopa = snapshot.data().jogos;
           for (let idJogoCopa in mapaJogosCopa) {
@@ -63,33 +76,41 @@ function App() {
         });*/
       }
 
-      if (resultadosUsuarios.length === 0) {
+      if (boloes.length > 0) {
         console.log("buscouResultados");
-        onSnapshot(doc(database, "resultadosUsuariosBoloes", "QwTr3XjKwUsWcOu6Mwmg"), (snapshot) => {
+        onSnapshot(doc(database, "resultadosUsuariosBoloes", bolaoAtual), (snapshot) => {
           const resUsuArr = [];
           const mapaResUsu = snapshot.data().usuarios;
           for (let idUser in mapaResUsu) {
             resUsuArr.push({ id: idUser, data: mapaResUsu[idUser] });
           }
           setResultadosUsuarios(resUsuArr);
-        })
+        });
         /*onSnapshot(collection(database, "resultadosUsuario"), (snapshot) => {
           setResultadosUsuarios(snapshot.docs.map((j) => ({ id: j.id, data: j.data() })));
         });*/
       }
 
-      if (selecoesCopa.length === 0) {
+      if (boloes.length > 0) {
         console.log("buscouSelecoes");
         buscaSelecoesCopa().then((v) => setSelecoesCopa(v.docs.map((s) => ({ id: s.id, data: s.data() }))));
       }
     }
-  }, [user]);
+  }, [user, bolaoAtual]);
 
   const menuLateral = (
     <React.Fragment>
       <Toolbar>
         <Typography variant="h6">Bolão da Leopoldina</Typography>
       </Toolbar>
+      <FormControl fullWidth>
+        <InputLabel>Bolão</InputLabel>
+        <Select label="Bolão" value={bolaoAtual} onChange={(e) => setBolaoAtual(e.target.value)}>
+          {boloes.map((b, i) => (
+            <MenuItem value={b.id}>{`${b.data.nomeTorneio} - ${b.data.anoTorneio}`}</MenuItem>
+          ))}
+        </Select>
+      </FormControl>
       <List>
         <ListItem
           disablePadding

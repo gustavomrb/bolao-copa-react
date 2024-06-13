@@ -16,6 +16,7 @@ import {
   updateDoc,
 } from "firebase/firestore";
 import jogosCopa from "./jogosCopa.json";
+import selecoes from "./selecoes.json";
 
 const firebaseConfig = {
   apiKey: "AIzaSyD4r2ZPEVjFTQ4EdhaNaS1b8tXvT_MTsok",
@@ -32,6 +33,29 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth();
 const analytics = getAnalytics(app);
 const database = getFirestore(app);
+
+/*(async () => {
+  let equipesBolaoNovo = { equipes: {} };
+
+  for (let selecao of selecoes) {
+    equipesBolaoNovo.equipes[database.collection("equipesBolao").doc().id] = selecao;
+  }
+
+  await setDoc(doc(database, "equipesBolao", "De1Xl4hSYBWbqHLjAjDp"), equipesBolaoNovo);
+})();*/
+
+/*(async () => {
+  let equipesBolaoNovo = { equipes: {} };
+
+  const selecoesCopaSnap = await getDocs(collection(database, "selecoesCopa"));
+  const selecoesCopaJson = selecoesCopaSnap.docs;
+
+  for (let selecaoCopaJson of selecoesCopaJson) {
+    equipesBolaoNovo.equipes[selecaoCopaJson.id] = selecaoCopaJson.data();
+  }
+
+  await setDoc(doc(database, "equipesBolao", "QwTr3XjKwUsWcOu6Mwmg"), equipesBolaoNovo);
+})();*/
 
 /*(async () => {
   let jogosCopaNovo = { jogos: {} };
@@ -163,7 +187,7 @@ const salvarResultados = async (resultados, user) => {
   const dataPrimeiroJogo = new Date(2022, 11, 17, 12, 0, 0, 0);
   if (dataAgora.getTime() < dataPrimeiroJogo.getTime()) {
     await updateDoc(doc(database, "resultadosUsuariosBoloes", "QwTr3XjKwUsWcOu6Mwmg"), {
-      [user.uid]: resultados
+      [user.uid]: resultados,
     });
     let resultadosCompletos = true;
     for (let jogoId in resultados.jogos) {
@@ -206,8 +230,12 @@ const salvarResultados = async (resultados, user) => {
 };
 
 const atualizaPontosUsuario = async (userId, idJogo, pontos) => {
-  const property = `jogos.${idJogo}.pontos`;
-  await updateDoc(doc(database, "resultadosUsuario", userId), { [property]: pontos });
+  const property = `usuarios.${userId}.jogos.${idJogo}.pontos`;
+  await updateDoc(doc(database, "resultadosUsuariosBoloes", "QwTr3XjKwUsWcOu6Mwmg"), {
+    [property]: pontos,
+  });
+  /*const property = `jogos.${idJogo}.pontos`;
+  await updateDoc(doc(database, "resultadosUsuario", userId), { [property]: pontos });*/
 };
 
 const updateJogoCopa = async (idJogo, idData) => {
