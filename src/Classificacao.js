@@ -9,7 +9,8 @@ import CloseIcon from "@mui/icons-material/Close";
 function Classificacao() {
   const [classificacao, setClassificacao] = useState([]);
 
-  const { resultadosUsuarios, todosUsuarios, setTodosUsuarios, jogosCopa } = useContext(GlobalContext);
+  const { resultadosUsuarios, todosUsuarios, setTodosUsuarios, jogosCopa, artilheiroAtual, campeaoAtual } =
+    useContext(GlobalContext);
 
   const theme = useTheme();
   const isXs = useMediaQuery(theme.breakpoints.only("xs"));
@@ -20,46 +21,47 @@ function Classificacao() {
         setTodosUsuarios(v.docs.map((u) => ({ id: u.id, data: u.data() })));
       });
     }
+  }, []);
 
-    if (todosUsuarios.length > 0 && jogosCopa.length > 0 && classificacao.length === 0) {
+  useEffect(() => {
+    if (todosUsuarios.length > 0) {
       geraClassificacao();
     }
-  }, [todosUsuarios, jogosCopa]);
+  }, [todosUsuarios]);
 
   const geraClassificacao = () => {
     const classificacao = [];
-    for (let usuario of todosUsuarios) {
-      const results = resultadosUsuarios.find((ru) => ru.id === usuario.id);
+    for (let usuario of resultadosUsuarios) {
       let pontos = 0;
       let cravadas = 0;
       let mataMata = 0;
       let artilheiro = 0;
       let campeao = 0;
-      for (let jogoId in results.data.jogos) {
+      for (let jogoId in usuario.data.jogos) {
         const jogoCopa = jogosCopa.find((j) => j.id === jogoId);
-        if (results.data.jogos[jogoId].pontos !== "") {
-          pontos += results.data.jogos[jogoId].pontos;
-          if (results.data.jogos[jogoId].pontos === 10) {
+        if (usuario.data.jogos[jogoId].pontos !== "") {
+          pontos += usuario.data.jogos[jogoId].pontos;
+          if (usuario.data.jogos[jogoId].pontos === 10) {
             cravadas += 1;
           }
           if (jogoCopa.data.fase > 1) {
-            mataMata += results.data.jogos[jogoId].pontos;
+            mataMata += usuario.data.jogos[jogoId].pontos;
           }
         }
       }
 
-      if (results.data.artilheiro === "Mbappé (PSG)") {
+      if (usuario.data.artilheiro === artilheiroAtual) {
         pontos += 10;
         artilheiro = 10;
       }
 
-      if (results.data.campeao === "Argentina") {
+      if (usuario.data.campeao === campeaoAtual) {
         pontos += 10;
         campeao = 10;
       }
 
       classificacao.push({
-        nome: usuario.data.nome,
+        nome: todosUsuarios.find((u) => u.id === usuario.id).data.nome,
         pontos: pontos,
         cravadas: cravadas,
         mataMata: mataMata,

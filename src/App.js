@@ -47,12 +47,16 @@ function App() {
   const [todosUsuarios, setTodosUsuarios] = useState([]);
   const [boloes, setBoloes] = useState([]);
   const [bolaoAtual, setBolaoAtual] = useState("");
+  const [campeaoAtual, setCampeaoAtual] = useState("");
+  const [artilheiroAtual, setArtilheiroAtual] = useState("");
 
   useEffect(() => {
     if (!user) {
       navigate("../login");
     }
+  }, []);
 
+  useEffect(() => {
     if (user) {
       if (boloes.length === 0) {
         console.log("buscouBoloes");
@@ -60,51 +64,49 @@ function App() {
           setBoloes(snapshot.docs.map((j) => ({ id: j.id, data: j.data() })));
         });
       }
-
-      if (boloes.length > 0) {
-        console.log("buscouJogos");
-        onSnapshot(doc(database, "jogosBolao", bolaoAtual), (snapshot) => {
-          const jogosCopaArr = [];
-          const mapaJogosCopa = snapshot.data().jogos;
-          for (let idJogoCopa in mapaJogosCopa) {
-            jogosCopaArr.push({ id: idJogoCopa, data: mapaJogosCopa[idJogoCopa] });
-          }
-          setJogosCopa(jogosCopaArr);
-        });
-        /*onSnapshot(query(collection(database, "jogosCopa"), orderBy("data")), (snapshot) => {
-          setJogosCopa(snapshot.docs.map((j) => ({ id: j.id, data: j.data() })));
-        });*/
-      }
-
-      if (boloes.length > 0) {
-        console.log("buscouResultados");
-        onSnapshot(doc(database, "resultadosUsuariosBoloes", bolaoAtual), (snapshot) => {
-          const resUsuArr = [];
-          const mapaResUsu = snapshot.data().usuarios;
-          for (let idUser in mapaResUsu) {
-            resUsuArr.push({ id: idUser, data: mapaResUsu[idUser] });
-          }
-          setResultadosUsuarios(resUsuArr);
-        });
-        /*onSnapshot(collection(database, "resultadosUsuario"), (snapshot) => {
-          setResultadosUsuarios(snapshot.docs.map((j) => ({ id: j.id, data: j.data() })));
-        });*/
-      }
-
-      if (boloes.length > 0) {
-        console.log("buscouSelecoes");
-        onSnapshot(doc(database, "equipesBolao", bolaoAtual), (snapshot) => {
-          const equipesArr = [];
-          const mapaEquipes = snapshot.data().equipes;
-          for (let idUser in mapaEquipes) {
-            equipesArr.push({ id: idUser, data: mapaEquipes[idUser] });
-          }
-          setSelecoesCopa(equipesArr);
-        });
-        /*buscaSelecoesCopa().then((v) => setSelecoesCopa(v.docs.map((s) => ({ id: s.id, data: s.data() }))));*/
-      }
     }
-  }, [user, bolaoAtual]);
+  }, [user]);
+
+  useEffect(() => {
+    if (bolaoAtual) {
+      setJogosCopa([]);
+      setResultadosUsuarios([]);
+      setSelecoesCopa([]);
+      setArtilheiroAtual("");
+      setCampeaoAtual("");
+      console.log("buscouJogos");
+      onSnapshot(doc(database, "jogosBolao", bolaoAtual), (snapshot) => {
+        const jogosCopaArr = [];
+        const mapaJogosCopa = snapshot.data().jogos;
+        for (let idJogoCopa in mapaJogosCopa) {
+          jogosCopaArr.push({ id: idJogoCopa, data: mapaJogosCopa[idJogoCopa] });
+        }
+        setJogosCopa(jogosCopaArr);
+        setArtilheiroAtual(snapshot.data().artilheiro);
+        setCampeaoAtual(snapshot.data().campeao);
+      });
+
+      console.log("buscouResultados");
+      onSnapshot(doc(database, "resultadosUsuariosBoloes", bolaoAtual), (snapshot) => {
+        const resUsuArr = [];
+        const mapaResUsu = snapshot.data().usuarios;
+        for (let idUser in mapaResUsu) {
+          resUsuArr.push({ id: idUser, data: mapaResUsu[idUser] });
+        }
+        setResultadosUsuarios(resUsuArr);
+      });
+
+      console.log("buscouSelecoes");
+      onSnapshot(doc(database, "equipesBolao", bolaoAtual), (snapshot) => {
+        const equipesArr = [];
+        const mapaEquipes = snapshot.data().equipes;
+        for (let idUser in mapaEquipes) {
+          equipesArr.push({ id: idUser, data: mapaEquipes[idUser] });
+        }
+        setSelecoesCopa(equipesArr);
+      });
+    }
+  }, [bolaoAtual]);
 
   const menuLateral = (
     <React.Fragment>
@@ -113,104 +115,116 @@ function App() {
       </Toolbar>
       <FormControl fullWidth>
         <InputLabel>Bolão</InputLabel>
-        <Select label="Bolão" value={bolaoAtual} onChange={(e) => setBolaoAtual(e.target.value)}>
-          {boloes.map((b, i) => (
-            <MenuItem value={b.id}>{`${b.data.nomeTorneio} - ${b.data.anoTorneio}`}</MenuItem>
-          ))}
-        </Select>
-      </FormControl>
-      <List>
-        <ListItem
-          disablePadding
-          onClick={() => {
-            setMenuAberto(false);
+        <Select
+          label="Bolão"
+          value={bolaoAtual}
+          onChange={(e) => {
+            setBolaoAtual(e.target.value);
             navigate("../home");
           }}
         >
-          <ListItemButton>
-            <ListItemIcon>
-              <LaptopChromebook />
-            </ListItemIcon>
-            <ListItemText primary="Meu Bolão" />
-          </ListItemButton>
-        </ListItem>
-        <ListItem
-          disablePadding
-          onClick={() => {
-            setMenuAberto(false);
-            navigate("../classificacao");
-          }}
-        >
-          <ListItemButton>
-            <ListItemIcon>
-              <Toc />
-            </ListItemIcon>
-            <ListItemText primary="Classificação" />
-          </ListItemButton>
-        </ListItem>
-        <ListItem
-          disablePadding
-          onClick={() => {
-            setMenuAberto(false);
-            navigate("../secada");
-          }}
-        >
-          <ListItemButton>
-            <ListItemIcon>
-              <Toc />
-            </ListItemIcon>
-            <ListItemText primary="Área da Secada" />
-          </ListItemButton>
-        </ListItem>
-        <ListItem
-          disablePadding
-          onClick={() => {
-            setMenuAberto(false);
-            navigate("../resultados");
-          }}
-        >
-          <ListItemButton>
-            <ListItemIcon>
-              <Toc />
-            </ListItemIcon>
-            <ListItemText primary="Resultados" />
-          </ListItemButton>
-        </ListItem>
-        <ListItem
-          disablePadding
-          onClick={() => {
-            setMenuAberto(false);
-            navigate("../situacao");
-          }}
-        >
-          <ListItemButton>
-            <ListItemIcon>
-              <Toc />
-            </ListItemIcon>
-            <ListItemText primary="Situação" />
-          </ListItemButton>
-        </ListItem>
-        <ListItem
-          disablePadding
-          onClick={() => {
-            setMenuAberto(false);
-            navigate("../regras");
-          }}
-        >
-          <ListItemButton>
-            <ListItemIcon>
-              <Toc />
-            </ListItemIcon>
-            <ListItemText primary="Regras" />
-          </ListItemButton>
-        </ListItem>
-        <ListItem disablePadding sx={{ flexDirection: "column", justifyContent: "center", mt: 1, gap: 0.5 }}>
-          <Typography variant={"body1"}>Pix para pagamento</Typography>
-          <Typography variant={"body2"}>21997586852</Typography>
-          <Typography variant={"body2"}>Gustavo Mendonça</Typography>
-          <Typography variant={"body2"}>Valor: 50R$</Typography>
-        </ListItem>
-      </List>
+          {boloes.map((b, i) => (
+            <MenuItem key={i} value={b.id}>{`${b.data.nomeTorneio} - ${b.data.anoTorneio}`}</MenuItem>
+          ))}
+        </Select>
+      </FormControl>
+      {bolaoAtual !== "" ? (
+        <List>
+          <ListItem
+            disablePadding
+            onClick={() => {
+              setMenuAberto(false);
+              navigate("../home");
+            }}
+          >
+            <ListItemButton>
+              <ListItemIcon>
+                <LaptopChromebook />
+              </ListItemIcon>
+              <ListItemText primary="Meu Bolão" />
+            </ListItemButton>
+          </ListItem>
+          <ListItem
+            disablePadding
+            onClick={() => {
+              setMenuAberto(false);
+              navigate("../classificacao");
+            }}
+          >
+            <ListItemButton>
+              <ListItemIcon>
+                <Toc />
+              </ListItemIcon>
+              <ListItemText primary="Classificação" />
+            </ListItemButton>
+          </ListItem>
+          <ListItem
+            disablePadding
+            onClick={() => {
+              setMenuAberto(false);
+              navigate("../secada");
+            }}
+          >
+            <ListItemButton>
+              <ListItemIcon>
+                <Toc />
+              </ListItemIcon>
+              <ListItemText primary="Área da Secada" />
+            </ListItemButton>
+          </ListItem>
+
+          <ListItem
+            disablePadding
+            onClick={() => {
+              setMenuAberto(false);
+              navigate("../resultados");
+            }}
+          >
+            <ListItemButton>
+              <ListItemIcon>
+                <Toc />
+              </ListItemIcon>
+              <ListItemText primary="Resultados" />
+            </ListItemButton>
+          </ListItem>
+          <ListItem
+            disablePadding
+            onClick={() => {
+              setMenuAberto(false);
+              navigate("../situacao");
+            }}
+          >
+            <ListItemButton>
+              <ListItemIcon>
+                <Toc />
+              </ListItemIcon>
+              <ListItemText primary="Situação" />
+            </ListItemButton>
+          </ListItem>
+          <ListItem
+            disablePadding
+            onClick={() => {
+              setMenuAberto(false);
+              navigate("../regras");
+            }}
+          >
+            <ListItemButton>
+              <ListItemIcon>
+                <Toc />
+              </ListItemIcon>
+              <ListItemText primary="Regras" />
+            </ListItemButton>
+          </ListItem>
+          <ListItem disablePadding sx={{ flexDirection: "column", justifyContent: "center", mt: 1, gap: 0.5 }}>
+            <Typography variant={"body1"}>Pix para pagamento</Typography>
+            <Typography variant={"body2"}>21997586852</Typography>
+            <Typography variant={"body2"}>Gustavo Mendonça</Typography>
+            <Typography variant={"body2"}>Valor: 25R$</Typography>
+          </ListItem>
+        </List>
+      ) : (
+        ""
+      )}
     </React.Fragment>
   );
 
@@ -230,7 +244,9 @@ function App() {
             todosUsuarios,
             setTodosUsuarios,
             boloes,
-            bolaoAtual
+            bolaoAtual,
+            artilheiroAtual,
+            campeaoAtual,
           }}
         >
           <Grid container height={"100vh"}>

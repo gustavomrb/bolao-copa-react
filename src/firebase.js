@@ -17,6 +17,7 @@ import {
 } from "firebase/firestore";
 import jogosCopa from "./jogosCopa.json";
 import selecoes from "./selecoes.json";
+import convocados from "./convocados.json";
 import { update } from "firebase/database";
 
 const firebaseConfig = {
@@ -34,6 +35,31 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth();
 const analytics = getAnalytics(app);
 const database = getFirestore(app);
+
+/*(async () => {
+  let resUsu = await getDoc(doc(database, "resultadosUsuariosBoloes", "De1Xl4hSYBWbqHLjAjDp"));
+  resUsu = new Map(Object.entries(resUsu.data().usuarios));
+  for (let [idUsu, usu] of resUsu) {
+    await updateDoc(doc(database, "resultadosUsuariosBoloes", "De1Xl4hSYBWbqHLjAjDp"), {
+      [`usuarios.${idUsu}.artilheiro`]: "",
+      [`usuarios.${idUsu}.campeao`]: "",
+    });
+  }
+})();*/
+
+/*(async () => {
+  let equipesBolao = await getDoc(doc(database, "equipesBolao", "De1Xl4hSYBWbqHLjAjDp"));
+  equipesBolao = new Map(Object.entries(equipesBolao.data().equipes));
+  for (let [id, equipe] of equipesBolao) {
+    console.log(id);
+    console.log(equipe);
+    let convocado = convocados.find((c) => c.equipe === equipe.nome);
+    console.log(convocado);
+    await updateDoc(doc(database, "equipesBolao", "De1Xl4hSYBWbqHLjAjDp"), {
+      [`equipes.${id}.convocados`]: convocado.jogadores,
+    });
+  }
+})();*/
 
 /*(async () => {
   let equipesBolaoNovo = { equipes: {} };
@@ -234,7 +260,7 @@ const criarResultados = async (jogosCopa, user) => {
 
 const salvarResultados = async (resultados, user, bolao) => {
   const dataAgora = new Date();
-  const dataPrimeiroJogo = new Date(2024, 6, 13, 16, 0, 0, 0);
+  const dataPrimeiroJogo = new Date(2024, 5, 15, 10, 0, 0, 0);
   if (dataAgora.getTime() < dataPrimeiroJogo.getTime()) {
     await updateDoc(doc(database, "resultadosUsuariosBoloes", bolao), {
       [`usuarios.${user.uid}`]: resultados,
@@ -289,7 +315,7 @@ const atualizaPontosUsuario = async (idBolao, userId, idJogo, pontos) => {
 };
 
 const updateJogoCopa = async (idBolao, idJogo, idData) => {
-  await updateDoc(doc(database, "jogosBolao", idBolao), {[`jogos.${idJogo}`] : idData});
+  await updateDoc(doc(database, "jogosBolao", idBolao), { [`jogos.${idJogo}`]: idData });
 };
 
 const criarUsuario = (email, password) => {

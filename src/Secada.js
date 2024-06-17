@@ -53,10 +53,12 @@ function Secada() {
   const organizarPorGrupo = () => {
     console.log("entrou organizar");
     const organizadosGrupo = [];
-    const grupos = faseAtual === 1 ? ["A", "B", "C", "D", "E", "F", "G", "H"] : ["A"];
+    const grupos = faseAtual === 1 ? [...new Set(jogosCopa.map((item) => item.data.grupo))].sort() : ["A"];
     for (let grupo of grupos) {
       const grupoJson = { grupo: grupo, jogos: [] };
-      grupoJson.jogos = jogosCopa.filter((j) => j.data.grupo === grupo && j.data.fase === faseAtual);
+      grupoJson.jogos = jogosCopa
+        .filter((j) => j.data.grupo === grupo && j.data.fase === faseAtual)
+        .sort((a, b) => a.data.data.toDate() - b.data.data.toDate());
       organizadosGrupo.push(grupoJson);
     }
     setJogosShow(organizadosGrupo);
@@ -126,9 +128,9 @@ function Secada() {
             </Grid>
             <Grid item xs={4} sm={2} mr={"auto"} pb={1}>
               <Select value={usuarioAtual} fullWidth onChange={(e) => setUsuarioAtual(e.target.value)} size={"small"}>
-                {todosUsuarios.map((u, i) => (
+                {resultadosUsuarios.map((u, i) => (
                   <MenuItem value={u.id} key={i}>
-                    {u.data.nome}
+                    {todosUsuarios.find((t) => t.id === u.id).data.nome}
                   </MenuItem>
                 ))}
               </Select>
