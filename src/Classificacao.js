@@ -38,7 +38,7 @@ function Classificacao() {
       let artilheiro = 0;
       let campeao = 0;
       for (let jogoId in usuario.data.jogos) {
-        const jogoCopa = jogosCopa.find((j) => j.id === jogoId);
+        const jogoCopa = jogosCopa.current.find((j) => j.id === jogoId);
         if (usuario.data.jogos[jogoId].pontos !== "") {
           pontos += usuario.data.jogos[jogoId].pontos;
           if (usuario.data.jogos[jogoId].pontos === 10) {

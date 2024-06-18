@@ -16,8 +16,6 @@ import { useEffect, useState, useRef } from "react";
 import { salvarResultados } from "./firebase";
 import { useTheme } from "@emotion/react";
 import { CalendarMonth, SortByAlphaRounded } from "@mui/icons-material";
-import convocadosJson from "./convocados.json";
-import selecoesJson from "./selecoes.json";
 import { useContext } from "react";
 import { GlobalContext } from "./App";
 
@@ -48,7 +46,7 @@ function MeuBolao() {
   const [convocados, setConvocados] = useState([]);
   const carregouInformacoesIniciais = useRef(false);
 
-  const { user, jogosCopa, resultadosUsuarios, selecoesCopa, boloes, bolaoAtual } = useContext(GlobalContext);
+  const { user, jogosCopa, resultadosUsuarios, selecoesCopa, bolaoAtual } = useContext(GlobalContext);
 
   const theme = useTheme();
   const isXs = useMediaQuery(theme.breakpoints.only("xs"));
@@ -56,7 +54,7 @@ function MeuBolao() {
   const getConvocados = () => {
     const convocados = [];
     convocados.push({ selecao: "", jogador: "" });
-    for (let sc of selecoesCopa) {
+    for (let sc of selecoesCopa.current) {
       for (let jogador of sc.data.convocados) {
         convocados.push({ selecao: sc.data.nome, jogador: jogador });
       }
@@ -69,14 +67,16 @@ function MeuBolao() {
     const organizadosData = [];
     const datas = [
       ...new Set(
-        jogosCopa.filter((j) => j.data.fase === fase).map((j) => j.data.data.toDate().toLocaleDateString("pt-BR"))
+        jogosCopa.current
+          .filter((j) => j.data.fase === fase)
+          .map((j) => j.data.data.toDate().toLocaleDateString("pt-BR"))
       ),
     ].sort();
     console.log(datas);
 
     for (let data of datas) {
       const dataJson = { data: data, jogos: [] };
-      dataJson.jogos = jogosCopa
+      dataJson.jogos = jogosCopa.current
         .filter((j) => j.data.data.toDate().toLocaleDateString("pt-BR") === data && j.data.fase === fase)
         .sort((a, b) => a.data.data - b.data.data);
       organizadosData.push(dataJson);
@@ -89,10 +89,10 @@ function MeuBolao() {
     fase = fase ? fase : faseAtual;
     console.log("entrou organizar");
     const organizadosGrupo = [];
-    const grupos = fase === 1 ? [...new Set(jogosCopa.map((item) => item.data.grupo))].sort() : ["A"];
+    const grupos = fase === 1 ? [...new Set(jogosCopa.current.map((item) => item.data.grupo))].sort() : ["A"];
     for (let grupo of grupos) {
       const grupoJson = { grupo: grupo, jogos: [] };
-      grupoJson.jogos = jogosCopa
+      grupoJson.jogos = jogosCopa.current
         .filter((j) => j.data.grupo === grupo && j.data.fase === fase)
         .sort((a, b) => a.data.data.toDate() - b.data.data.toDate());
       organizadosGrupo.push(grupoJson);
@@ -103,7 +103,7 @@ function MeuBolao() {
 
   const criarNovoResultadoUsuario = () => {
     let novoResult = { campeao: "", artilheiro: "", jogos: {} };
-    for (let jogo of jogosCopa) {
+    for (let jogo of jogosCopa.current) {
       novoResult.jogos[jogo.id] = {};
       novoResult.jogos[jogo.id].gols1 = "";
       novoResult.jogos[jogo.id].gols2 = "";
@@ -114,6 +114,8 @@ function MeuBolao() {
 
   useEffect(() => {
     console.log("entrou useEffect resultadosUsuario");
+    console.log(resultadosUsuarios.length);
+    console.log(carregouInformacoesIniciais.current);
 
     if (resultadosUsuarios.length > 0 && !carregouInformacoesIniciais.current) {
       console.log("Carrega as informações.");
@@ -129,15 +131,13 @@ function MeuBolao() {
       //setValueArtilheiro(res.artilheiro);
       setValueCampeao(res.campeao);
 
-      if (jogosShow.length === 0 && jogosCopa.length > 0) {
+      if (jogosShow.length === 0 && jogosCopa.current.length > 0) {
         organizarPorGrupo();
       }
 
-      if (selecoesCopa.length > 0) {
+      if (selecoesCopa.current.length > 0) {
         let convocadosJson = getConvocados();
         setConvocados(convocadosJson);
-        console.log(convocadosJson);
-        console.log(resultados);
         setValueArtilheiro(convocadosJson.find((c) => c.jogador === resultados.artilheiro));
       }
 
@@ -153,6 +153,7 @@ function MeuBolao() {
   useEffect(() => {
     if (bolaoAtual !== null) {
       carregouInformacoesIniciais.current = false;
+      setJogosShow([]);
     }
   }, [bolaoAtual]);
 
@@ -171,7 +172,7 @@ function MeuBolao() {
 
   const calculaPontosGrupo = (grupo) => {
     let ptsGeral = 0;
-    const jogosGrupo = jogosCopa.filter((j) => j.data.grupo === grupo && j.data.fase === faseAtual);
+    const jogosGrupo = jogosCopa.current.filter((j) => j.data.grupo === grupo && j.data.fase === faseAtual);
     for (let jogo of jogosGrupo) {
       const ptsJogo = resultados.jogos[jogo.id].pontos;
       if (ptsJogo !== "") {
@@ -183,7 +184,7 @@ function MeuBolao() {
 
   const calculaPontosData = (data) => {
     let ptsGeral = 0;
-    const jogosGrupo = jogosCopa.filter((j) => j.data.data.toDate().toLocaleDateString("pt-BR") === data);
+    const jogosGrupo = jogosCopa.current.filter((j) => j.data.data.toDate().toLocaleDateString("pt-BR") === data);
     for (let jogo of jogosGrupo) {
       const ptsJogo = resultados.jogos[jogo.id].pontos;
       if (ptsJogo !== "") {
@@ -195,7 +196,8 @@ function MeuBolao() {
 
   return (
     <Grid container justifyContent={"center"} alignItems={"center"}>
-      {jogosShow && resultados && selecoesCopa && resultadosUsuarios && bolaoAtual && valueArtilheiro ? (
+      {/* {jogosShow && resultados && selecoesCopa.current && resultadosUsuarios && bolaoAtual && valueArtilheiro ? ( */}
+      {carregouInformacoesIniciais.current ? (
         <Grid item xs={12} sm={10} container direction={"column"}>
           <Grid item container xs={12} justifyContent={"end"} sx={{ pt: 1 }}>
             <Grid item xs={4} sm={2} pb={1}>
@@ -267,8 +269,8 @@ function MeuBolao() {
                     <Grid container direction={"column"} spacing={2}>
                       {j.jogos.map((jo, k) => {
                         const resultado = resultados.jogos[jo.id];
-                        const time1 = selecoesCopa.find((s) => s.id === jo.data.times[0]);
-                        const time2 = selecoesCopa.find((s) => s.id === jo.data.times[1]);
+                        const time1 = selecoesCopa.current.find((s) => s.id === jo.data.times[0]);
+                        const time2 = selecoesCopa.current.find((s) => s.id === jo.data.times[1]);
                         return (
                           <Grid
                             item
@@ -308,7 +310,7 @@ function MeuBolao() {
                                 sx={{ typography: "body2" }}
                                 onChange={(e) => handleInputChange(e, "gols1", jo.id)}
                                 //disabled={jo.data.fase === 6 ? false : true}
-                                disabled={new Date() > jogosShow[0].jogos[1].data.data.toDate()}
+                                disabled={new Date() > jogosShow[0].jogos[0].data.data.toDate()}
                               />
                             </Grid>
                             <Grid item xs={1}>
@@ -328,7 +330,7 @@ function MeuBolao() {
                                 }}
                                 onChange={(e) => handleInputChange(e, "gols2", jo.id)}
                                 //disabled={jo.data.fase === 6 ? false : true}
-                                disabled={new Date() > jogosShow[0].jogos[1].data.data.toDate()}
+                                disabled={new Date() > jogosShow[0].jogos[0].data.data.toDate()}
                               />
                             </Grid>
                             <Grid item xs={6.5} sm={5}>
@@ -381,7 +383,7 @@ function MeuBolao() {
             </Grid>
             <Grid item xs={6} sm={4}>
               <Autocomplete
-                options={[...selecoesCopa.map((s) => s.data.nome), ""]}
+                options={[...selecoesCopa.current.map((s) => s.data.nome), ""]}
                 getOptionLabel={(option) => option}
                 renderInput={(params) => <TextField {...params} label="Campeão" />}
                 value={valueCampeao}
@@ -404,7 +406,7 @@ function MeuBolao() {
                 });
                 organizarPorGrupo();
               }}
-              disabled={new Date() > jogosShow[0].jogos[1].data.data.toDate()}
+              disabled={new Date() > jogosShow[0].jogos[0].data.data.toDate()}
             >
               Enviar Palpites
             </Button>

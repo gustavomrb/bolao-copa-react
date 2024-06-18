@@ -1,77 +1,50 @@
 [
   {
-    "nome": ""
+    "nome": "Argentina"
   },
   {
-    "nome": "Alemanha"
+    "nome": "Canadá"
   },
   {
-    "nome": "Espanha"
+    "nome": "Peru"
   },
   {
-    "nome": "Escócia"
+    "nome": "Chile"
   },
   {
-    "nome": "França"
+    "nome": "México"
   },
   {
-    "nome": "Holanda"
+    "nome": "Jamaica"
   },
   {
-    "nome": "Inglaterra"
+    "nome": "Equador"
   },
   {
-    "nome": "Itália"
+    "nome": "Venezuela"
   },
   {
-    "nome": "Turquia"
+    "nome": "Estados Unidos"
   },
   {
-    "nome": "Croácia"
+    "nome": "Bolívia"
   },
   {
-    "nome": "Albânia"
+    "nome": "Uruguai"
   },
   {
-    "nome": "Chéquia"
+    "nome": "Panamá"
   },
   {
-    "nome": "Bélgica"
+    "nome": "Brasil"
   },
   {
-    "nome": "Áustria"
+    "nome": "Costa Rica"
   },
   {
-    "nome": "Hungria"
+    "nome": "Colômbia"
   },
   {
-    "nome": "Sérvia"
-  },
-  {
-    "nome": "Dinamarca"
-  },
-  {
-    "nome": "Eslovénia"
-  },
-  {
-    "nome": "Roménia"
-  },
-  {
-    "nome": "Suíça"
-  },
-  {
-    "nome": "Portugal"
-  },
-  {
-    "nome": "Eslováquia"
-  },
-  {
-    "nome": "Polónia"
-  },
-  {
-    "nome": "Ucrânia"
-  },
-  {
-    "nome": "Geórgia"
+    "nome": "Paraguai"
   }
 ]

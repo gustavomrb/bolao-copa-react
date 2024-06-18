@@ -35,13 +35,15 @@ function Secada() {
     const organizadosData = [];
     const datas = [
       ...new Set(
-        jogosCopa.filter((j) => j.data.fase === faseAtual).map((j) => j.data.data.toDate().toLocaleDateString("pt-BR"))
+        jogosCopa.current
+          .filter((j) => j.data.fase === faseAtual)
+          .map((j) => j.data.data.toDate().toLocaleDateString("pt-BR"))
       ),
     ];
 
     for (let data of datas) {
       const dataJson = { data: data, jogos: [] };
-      dataJson.jogos = jogosCopa.filter(
+      dataJson.jogos = jogosCopa.current.filter(
         (j) => j.data.data.toDate().toLocaleDateString("pt-BR") === data && j.data.fase === faseAtual
       );
       organizadosData.push(dataJson);
@@ -53,10 +55,10 @@ function Secada() {
   const organizarPorGrupo = () => {
     console.log("entrou organizar");
     const organizadosGrupo = [];
-    const grupos = faseAtual === 1 ? [...new Set(jogosCopa.map((item) => item.data.grupo))].sort() : ["A"];
+    const grupos = faseAtual === 1 ? [...new Set(jogosCopa.current.map((item) => item.data.grupo))].sort() : ["A"];
     for (let grupo of grupos) {
       const grupoJson = { grupo: grupo, jogos: [] };
-      grupoJson.jogos = jogosCopa
+      grupoJson.jogos = jogosCopa.current
         .filter((j) => j.data.grupo === grupo && j.data.fase === faseAtual)
         .sort((a, b) => a.data.data.toDate() - b.data.data.toDate());
       organizadosGrupo.push(grupoJson);
@@ -66,7 +68,7 @@ function Secada() {
   };
 
   useEffect(() => {
-    if (jogosShow.length === 0 && jogosCopa.length > 0) {
+    if (jogosShow.length === 0 && jogosCopa.current.length > 0) {
       organizarPorGrupo();
     }
 
@@ -80,7 +82,7 @@ function Secada() {
     if (!usuarioAtual && todosUsuarios.length > 0) {
       setUsuarioAtual(todosUsuarios[0].id);
     }
-  }, [jogosCopa, todosUsuarios]);
+  }, [jogosCopa.current, todosUsuarios]);
 
   useEffect(() => {
     organizarPorGrupo();
@@ -89,7 +91,7 @@ function Secada() {
   const calculaPontosGrupo = (grupo) => {
     let ptsGeral = 0;
     const resultados = resultadosUsuarios.find((r) => r.id === usuarioAtual).data;
-    const jogosGrupo = jogosCopa.filter((j) => j.data.grupo === grupo && j.data.fase === faseAtual);
+    const jogosGrupo = jogosCopa.current.filter((j) => j.data.grupo === grupo && j.data.fase === faseAtual);
     for (let jogo of jogosGrupo) {
       const ptsJogo = resultados.jogos[jogo.id].pontos;
       if (ptsJogo !== "") {
@@ -102,7 +104,7 @@ function Secada() {
   const calculaPontosData = (data) => {
     let ptsGeral = 0;
     const resultados = resultadosUsuarios.find((r) => r.id === usuarioAtual).data;
-    const jogosGrupo = jogosCopa.filter((j) => j.data.data.toDate().toLocaleDateString("pt-BR") === data);
+    const jogosGrupo = jogosCopa.current.filter((j) => j.data.data.toDate().toLocaleDateString("pt-BR") === data);
     for (let jogo of jogosGrupo) {
       const ptsJogo = resultados.jogos[jogo.id].pontos;
       if (ptsJogo !== "") {
@@ -114,7 +116,7 @@ function Secada() {
 
   return (
     <Grid container justifyContent={"center"} alignItems={"center"}>
-      {jogosShow && selecoesCopa && resultadosUsuarios && usuarioAtual ? (
+      {jogosShow && selecoesCopa.current && resultadosUsuarios && usuarioAtual ? (
         <Grid item xs={12} sm={10} container direction={"column"}>
           <Grid item container xs={12} justifyContent={"end"} sx={{ pt: 1 }}>
             <Grid item xs={4} sm={2} pb={1}>
@@ -183,8 +185,8 @@ function Secada() {
                     <Grid container direction={"column"} spacing={2}>
                       {j.jogos.map((jo, k) => {
                         const resultado = resultadosUsuarios.find((r) => r.id === usuarioAtual).data.jogos[jo.id];
-                        const time1 = selecoesCopa.find((s) => s.id === jo.data.times[0]);
-                        const time2 = selecoesCopa.find((s) => s.id === jo.data.times[1]);
+                        const time1 = selecoesCopa.current.find((s) => s.id === jo.data.times[0]);
+                        const time2 = selecoesCopa.current.find((s) => s.id === jo.data.times[1]);
                         return (
                           <Grid
                             item

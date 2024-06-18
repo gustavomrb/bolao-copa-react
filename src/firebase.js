@@ -48,19 +48,20 @@ const database = getFirestore(app);
 })();*/
 
 /*(async () => {
-  let equipesBolao = await getDoc(doc(database, "equipesBolao", "De1Xl4hSYBWbqHLjAjDp"));
+  let equipesBolao = await getDoc(doc(database, "equipesBolao", "lLA1fU7Qc07KO848giFn"));
   equipesBolao = new Map(Object.entries(equipesBolao.data().equipes));
   for (let [id, equipe] of equipesBolao) {
     console.log(id);
     console.log(equipe);
     let convocado = convocados.find((c) => c.equipe === equipe.nome);
     console.log(convocado);
-    await updateDoc(doc(database, "equipesBolao", "De1Xl4hSYBWbqHLjAjDp"), {
+    await updateDoc(doc(database, "equipesBolao", "lLA1fU7Qc07KO848giFn"), {
       [`equipes.${id}.convocados`]: convocado.jogadores,
     });
   }
 })();*/
 
+//Novo modo de adicionar equipes.
 /*(async () => {
   let equipesBolaoNovo = { equipes: {} };
 
@@ -68,50 +69,7 @@ const database = getFirestore(app);
     equipesBolaoNovo.equipes[doc(collection(database, "equipesBolao")).id] = selecao;
   }
 
-  await setDoc(doc(database, "equipesBolao", "De1Xl4hSYBWbqHLjAjDp"), equipesBolaoNovo);
-})();*/
-
-//Novo modo de adicionar equipes.
-/*(async () => {
-  let equipesBolaoNovo = { equipes: {} };
-
-  const selecoesCopaSnap = await getDocs(collection(database, "selecoesCopa"));
-  const selecoesCopaJson = selecoesCopaSnap.docs;
-
-  for (let selecaoCopaJson of selecoesCopaJson) {
-    equipesBolaoNovo.equipes[selecaoCopaJson.id] = selecaoCopaJson.data();
-  }
-
-  await setDoc(doc(database, "equipesBolao", "QwTr3XjKwUsWcOu6Mwmg"), equipesBolaoNovo);
-})();*/
-
-//Migração de jogosCopa para jogosBolao
-/*(async () => {
-  let jogosCopaNovo = { jogos: {} };
-
-  const jogosCopaSnap = await getDocs(collection(database, "jogosCopa"));
-  const jogosCopaJson = jogosCopaSnap.docs;
-
-  for (let jogoCopaJson of jogosCopaJson) {
-    jogosCopaNovo.jogos[jogoCopaJson.id] = jogoCopaJson.data();
-  }
-
-  await setDoc(doc(database, "jogosBolao", "QwTr3XjKwUsWcOu6Mwmg"), jogosCopaNovo);
-})();*/
-
-//Migração de resultadosUsuario para resultadosUsuariosBoloes.
-/*(async () => {
-  const resultadosUsuarioSnap = await getDocs(collection(database, "resultadosUsuario"));
-  const resultadosUsuarioJson = resultadosUsuarioSnap.docs;
-
-  let resultadoUsuarioNovo = {};
-  resultadoUsuarioNovo.usuarios = {}
-
-  for(let resultadoUsuarioJson of resultadosUsuarioJson) {
-    resultadoUsuarioNovo.usuarios[resultadoUsuarioJson.id] = resultadoUsuarioJson.data();
-  }
-
-  await setDoc(doc(database, "resultadosUsuariosBoloes", "QwTr3XjKwUsWcOu6Mwmg"), resultadoUsuarioNovo);
+  await setDoc(doc(database, "equipesBolao", "lLA1fU7Qc07KO848giFn"), equipesBolaoNovo);
 })();*/
 
 //Atualiza se pessoa mandou todos os resultados e artilheiro e campeão.
@@ -141,22 +99,25 @@ const database = getFirestore(app);
 })();*/
 
 /*(async () => {
-  let equipesBolao = await getDoc(doc(database, "equipesBolao", "De1Xl4hSYBWbqHLjAjDp"));
+  let equipesBolao = await getDoc(doc(database, "equipesBolao", "lLA1fU7Qc07KO848giFn"));
   equipesBolao = new Map(Object.entries(equipesBolao.data().equipes));
   console.log(jogosCopa);
   const idsJogos = [];
   for (let jogoCopa of jogosCopa) {
-    let selecao1, selecao2 = null;
-    for(let [id, equipe] of equipesBolao) {
-      if(jogoCopa.times[0] === equipe.nome) selecao1 = id;
-      if(jogoCopa.times[1] === equipe.nome) selecao2 = id;
-      if(selecao1 && selecao2) break;
+    let selecao1,
+      selecao2 = null;
+    for (let [id, equipe] of equipesBolao) {
+      if (jogoCopa.times[0] === equipe.nome) selecao1 = id;
+      if (jogoCopa.times[1] === equipe.nome) selecao2 = id;
+      if (selecao1 && selecao2) break;
     }
 
-    const dataSplit = jogoCopa.data.split("/").map(v => parseInt(v));
-    const horarioSplit = jogoCopa.horario.split(":").map(v => parseInt(v));
+    const dataSplit = jogoCopa.data.split("/").map((v) => parseInt(v));
+    const horarioSplit = jogoCopa.horario.split(":").map((v) => parseInt(v));
     const jogo = {
-      data: Timestamp.fromDate(new Date(dataSplit[2], dataSplit[1], dataSplit[0], horarioSplit[0], horarioSplit[1], 0, 0)),
+      data: Timestamp.fromDate(
+        new Date(dataSplit[2], dataSplit[1] - 1, dataSplit[0], horarioSplit[0], horarioSplit[1], 0, 0)
+      ),
       fase: jogoCopa.fase,
       gols1: null,
       gols2: null,
@@ -164,17 +125,19 @@ const database = getFirestore(app);
       times: [selecao1, selecao2],
     };
 
-    const idJogo = doc(collection(database, "equipesBolao")).id
-    await updateDoc(doc(database, "jogosBolao", "De1Xl4hSYBWbqHLjAjDp"), { [`jogos.${idJogo}`] : jogo });
-    console.log("fez update")
+    const idJogo = doc(collection(database, "equipesBolao")).id;
+    await updateDoc(doc(database, "jogosBolao", "lLA1fU7Qc07KO848giFn"), { [`jogos.${idJogo}`]: jogo });
+    console.log("fez update");
     idsJogos.push(idJogo);
   }
 
   const usuarios = (await getDocs(collection(database, "users"))).docs;
   for (let usuario of usuarios) {
     for (let idJogo of idsJogos) {
-      await updateDoc(doc(database, "resultadosUsuariosBoloes", "De1Xl4hSYBWbqHLjAjDp"), {
+      await updateDoc(doc(database, "resultadosUsuariosBoloes", "lLA1fU7Qc07KO848giFn"), {
         [`usuarios.${usuario.id}.jogos.${idJogo}`]: { gols1: "", gols2: "", pontos: "" },
+        [`usuarios.${usuario.id}.artilheiro`]: "",
+        [`usuarios.${usuario.id}.campeao`]: "",
       });
     }
 
@@ -220,12 +183,12 @@ const database = getFirestore(app);
   }
 })();*/
 
-const buscaJogosCopa = async () => {
-  return getDocs(query(collection(database, "jogosCopa"), orderBy("data")));
+const buscaJogosBolao = async (idBolao) => {
+  return getDoc(query(doc(database, "jogosBolao"), idBolao));
 };
 
-const buscaSelecoesCopa = async () => {
-  return getDocs(collection(database, "selecoesCopa"));
+const buscaEquipesBolao = async (idBolao) => {
+  return await getDoc(doc(database, "equipesBolao", idBolao));
 };
 
 const buscaUsuarios = async () => {
@@ -236,13 +199,8 @@ const buscaUsuario = async (id) => {
   return getDoc(doc(database, "users", id));
 };
 
-const buscarResultados = async (user) => {
-  const resultadosSnap = await getDoc(doc(database, "resultadosUsuario", user.uid));
-  if (resultadosSnap.exists()) {
-    return resultadosSnap.data();
-  } else {
-    return null;
-  }
+const buscarResultados = async (idBolao) => {
+  return await getDoc(doc(database, "resultadosUsuario", idBolao));
 };
 
 const criarResultados = async (jogosCopa, user) => {
@@ -348,8 +306,8 @@ export {
   logarUsuario,
   signOutUser,
   database,
-  buscaJogosCopa,
-  buscaSelecoesCopa,
+  buscaEquipesBolao,
+  buscaJogosBolao,
   criarResultados,
   buscarResultados,
   salvarResultados,

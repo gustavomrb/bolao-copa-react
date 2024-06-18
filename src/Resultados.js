@@ -38,16 +38,17 @@ function Resultados() {
   const organizarPorData = (fase) => {
     fase = fase ? fase : faseAtual;
     const organizadosData = [];
-    const datas = 
-      [...new Set(
+    const datas = [
+      ...new Set(
         jogosCopaNew.filter((j) => j.data.fase === fase).map((j) => j.data.data.toDate().toLocaleDateString("pt-BR"))
-      )].sort();
+      ),
+    ].sort();
 
     for (let data of datas) {
       const dataJson = { data: data, jogos: [] };
-      dataJson.jogos = jogosCopaNew.filter(
-        (j) => j.data.data.toDate().toLocaleDateString("pt-BR") === data && j.data.fase === fase
-      ).sort((a,b) => a.data.data - b.data.data);
+      dataJson.jogos = jogosCopaNew
+        .filter((j) => j.data.data.toDate().toLocaleDateString("pt-BR") === data && j.data.fase === fase)
+        .sort((a, b) => a.data.data - b.data.data);
       organizadosData.push(dataJson);
     }
     setJogosShow(organizadosData);
@@ -57,10 +58,12 @@ function Resultados() {
   const organizarPorGrupo = (fase) => {
     fase = fase ? fase : faseAtual;
     const organizadosGrupo = [];
-    const grupos = fase === 1 ? [...new Set(jogosCopaNew.map(item => item.data.grupo))].sort() : ["A"];
+    const grupos = fase === 1 ? [...new Set(jogosCopaNew.map((item) => item.data.grupo))].sort() : ["A"];
     for (let grupo of grupos) {
       const grupoJson = { grupo: grupo, jogos: [] };
-      grupoJson.jogos = jogosCopaNew.filter((j) => j.data.grupo === grupo && j.data.fase === fase).sort((a,b) => a.data.data.toDate() - b.data.data.toDate());
+      grupoJson.jogos = jogosCopaNew
+        .filter((j) => j.data.grupo === grupo && j.data.fase === fase)
+        .sort((a, b) => a.data.data.toDate() - b.data.data.toDate());
       organizadosGrupo.push(grupoJson);
     }
     setJogosShow(organizadosGrupo);
@@ -127,8 +130,8 @@ function Resultados() {
 
   useEffect(() => {
     if (jogosCopaNew.length === 0) {
-      setJogosCopaNew(cloneDeep(jogosCopa));
-      setJogosCopaOld(cloneDeep(jogosCopa));
+      setJogosCopaNew(cloneDeep(jogosCopa.current));
+      setJogosCopaOld(cloneDeep(jogosCopa.current));
     }
 
     if (jogosShow.length === 0 && jogosCopaNew.length > 0) {
@@ -157,7 +160,7 @@ function Resultados() {
 
   return (
     <Grid container justifyContent={"center"} alignItems={"center"}>
-      {jogosShow && selecoesCopa && resultadosUsuarios && userBanco ? (
+      {jogosShow && selecoesCopa.current && resultadosUsuarios && userBanco ? (
         <Grid item xs={12} sm={10} container direction={"column"}>
           <Grid item container xs={12} justifyContent={"end"} sx={{ pt: 1 }}>
             <Grid item xs={4} sm={2} mr={"auto"} pb={1}>
@@ -222,8 +225,8 @@ function Resultados() {
                   <Card elevation={3} sx={{ pt: 1.5, pb: 1, borderRadius: 4 }}>
                     <Grid container direction={"column"} spacing={2}>
                       {j.jogos.map((jo, k) => {
-                        const time1 = selecoesCopa.find((s) => s.id === jo.data.times[0]);
-                        const time2 = selecoesCopa.find((s) => s.id === jo.data.times[1]);
+                        const time1 = selecoesCopa.current.find((s) => s.id === jo.data.times[0]);
+                        const time2 = selecoesCopa.current.find((s) => s.id === jo.data.times[1]);
                         return (
                           <Grid
                             item

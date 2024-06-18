@@ -20,8 +20,8 @@ root.render(
       <Routes>
         <Route path="/signup" element={<SignUpPage />} />
         <Route path="/login" element={<LoginPage />} />
-        <Route exact path="/" element={<Navigate to="/login" />} />
-        <Route element={<App />}>
+        {/* <Route exact path="/" element={<Navigate to="/login" />} /> */}
+        <Route path="/" element={<App />}>
           <Route path="/home" element={<MeuBolao />} />
           <Route path="/situacao" element={<Situacao />} />
           <Route path="/regras" element={<Regras />} />

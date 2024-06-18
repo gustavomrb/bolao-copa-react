@@ -22,12 +22,12 @@ import {
   Typography,
 } from "@mui/material";
 import { Outlet, useNavigate } from "react-router-dom";
-import { auth, buscaJogosCopa, buscaSelecoesCopa, database, signOutUser } from "./firebase";
+import { auth, database, signOutUser } from "./firebase";
 import { LaptopChromebook, Toc, MenuRounded } from "@mui/icons-material";
 import { useAuthState } from "react-firebase-hooks/auth";
-import React, { createContext, useEffect } from "react";
+import React, { createContext, useEffect, useRef } from "react";
 import { useState } from "react";
-import { collection, onSnapshot, orderBy, query, doc } from "firebase/firestore";
+import { collection, onSnapshot, doc } from "firebase/firestore";
 
 const darkTheme = createTheme({
   palette: {
@@ -41,14 +41,15 @@ function App() {
   const [user] = useAuthState(auth);
   const navigate = useNavigate();
   const [menuAberto, setMenuAberto] = useState(false);
-  const [jogosCopa, setJogosCopa] = useState([]);
   const [resultadosUsuarios, setResultadosUsuarios] = useState([]);
-  const [selecoesCopa, setSelecoesCopa] = useState([]);
   const [todosUsuarios, setTodosUsuarios] = useState([]);
   const [boloes, setBoloes] = useState([]);
   const [bolaoAtual, setBolaoAtual] = useState("");
   const [campeaoAtual, setCampeaoAtual] = useState("");
   const [artilheiroAtual, setArtilheiroAtual] = useState("");
+
+  const selecoesCopa = useRef([]);
+  let jogosCopa = useRef([]);
 
   useEffect(() => {
     if (!user) {
@@ -68,20 +69,31 @@ function App() {
   }, [user]);
 
   useEffect(() => {
-    if (bolaoAtual) {
-      setJogosCopa([]);
+    if (bolaoAtual && bolaoAtual !== "") {
+      jogosCopa.current = [];
       setResultadosUsuarios([]);
-      setSelecoesCopa([]);
+      selecoesCopa.current = [];
       setArtilheiroAtual("");
       setCampeaoAtual("");
       console.log("buscouJogos");
+
+      console.log("buscouSelecoes");
+      onSnapshot(doc(database, "equipesBolao", bolaoAtual), (snapshot) => {
+        const equipesArr = [];
+        const mapaEquipes = snapshot.data().equipes;
+        for (let idUser in mapaEquipes) {
+          equipesArr.push({ id: idUser, data: mapaEquipes[idUser] });
+        }
+        selecoesCopa.current = equipesArr;
+      });
+
       onSnapshot(doc(database, "jogosBolao", bolaoAtual), (snapshot) => {
         const jogosCopaArr = [];
         const mapaJogosCopa = snapshot.data().jogos;
         for (let idJogoCopa in mapaJogosCopa) {
           jogosCopaArr.push({ id: idJogoCopa, data: mapaJogosCopa[idJogoCopa] });
         }
-        setJogosCopa(jogosCopaArr);
+        jogosCopa.current = jogosCopaArr;
         setArtilheiroAtual(snapshot.data().artilheiro);
         setCampeaoAtual(snapshot.data().campeao);
       });
@@ -95,16 +107,7 @@ function App() {
         }
         setResultadosUsuarios(resUsuArr);
       });
-
-      console.log("buscouSelecoes");
-      onSnapshot(doc(database, "equipesBolao", bolaoAtual), (snapshot) => {
-        const equipesArr = [];
-        const mapaEquipes = snapshot.data().equipes;
-        for (let idUser in mapaEquipes) {
-          equipesArr.push({ id: idUser, data: mapaEquipes[idUser] });
-        }
-        setSelecoesCopa(equipesArr);
-      });
+      navigate("../home");
     }
   }, [bolaoAtual]);
 
@@ -120,7 +123,6 @@ function App() {
           value={bolaoAtual}
           onChange={(e) => {
             setBolaoAtual(e.target.value);
-            navigate("../home");
           }}
         >
           {boloes.map((b, i) => (
@@ -134,7 +136,6 @@ function App() {
             disablePadding
             onClick={() => {
               setMenuAberto(false);
-              navigate("../home");
             }}
           >
             <ListItemButton>
@@ -236,11 +237,9 @@ function App() {
           value={{
             user,
             jogosCopa,
-            setJogosCopa,
             resultadosUsuarios,
             setResultadosUsuarios,
             selecoesCopa,
-            setSelecoesCopa,
             todosUsuarios,
             setTodosUsuarios,
             boloes,
