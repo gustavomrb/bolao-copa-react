@@ -41,7 +41,7 @@ function App() {
   const [user] = useAuthState(auth);
   const navigate = useNavigate();
   const [menuAberto, setMenuAberto] = useState(false);
-  const [resultadosUsuarios, setResultadosUsuarios] = useState([]);
+  const [resultadosUsuarios, setResultadosUsuarios] = useState();
   const [todosUsuarios, setTodosUsuarios] = useState([]);
   const [boloes, setBoloes] = useState([]);
   const [bolaoAtual, setBolaoAtual] = useState("");
@@ -136,6 +136,7 @@ function App() {
             disablePadding
             onClick={() => {
               setMenuAberto(false);
+              navigate("../");
             }}
           >
             <ListItemButton>
@@ -159,20 +160,22 @@ function App() {
               <ListItemText primary="Classificação" />
             </ListItemButton>
           </ListItem>
-          <ListItem
-            disablePadding
-            onClick={() => {
-              setMenuAberto(false);
-              navigate("../secada");
-            }}
-          >
-            <ListItemButton>
-              <ListItemIcon>
-                <Toc />
-              </ListItemIcon>
-              <ListItemText primary="Área da Secada" />
-            </ListItemButton>
-          </ListItem>
+          {bolaoAtual && bolaoAtual !== "lLA1fU7Qc07KO848giFn" ? (
+            <ListItem
+              disablePadding
+              onClick={() => {
+                setMenuAberto(false);
+                navigate("../secada");
+              }}
+            >
+              <ListItemButton>
+                <ListItemIcon>
+                  <Toc />
+                </ListItemIcon>
+                <ListItemText primary="Área da Secada" />
+              </ListItemButton>
+            </ListItem>
+          ) : null}
 
           <ListItem
             disablePadding

@@ -120,8 +120,8 @@ function MeuBolao() {
     if (resultadosUsuarios.length > 0 && !carregouInformacoesIniciais.current) {
       console.log("Carrega as informações.");
       let res = resultadosUsuarios.find((r) => r.id === user.uid);
-
-      if (res) {
+      console.log(res);
+      if (res && res.data.jogos) {
         res = res.data;
       } else {
         res = criarNovoResultadoUsuario();
@@ -397,13 +397,15 @@ function MeuBolao() {
             <Button
               variant="outlined"
               onClick={() => {
-                salvarResultados(resultados, user, bolaoAtual).then((salvou) => {
-                  if (salvou) {
-                    setResultSalvo(true);
-                  } else {
-                    setResultNaoSalvo(true);
+                salvarResultados(resultados, user, bolaoAtual, jogosShow[0].jogos[0].data.data.toDate()).then(
+                  (salvou) => {
+                    if (salvou) {
+                      setResultSalvo(true);
+                    } else {
+                      setResultNaoSalvo(true);
+                    }
                   }
-                });
+                );
                 organizarPorGrupo();
               }}
               disabled={new Date() > jogosShow[0].jogos[0].data.data.toDate()}

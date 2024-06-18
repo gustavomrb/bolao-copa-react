@@ -216,9 +216,8 @@ const criarResultados = async (jogosCopa, user) => {
   return resultadosUsuario;
 };
 
-const salvarResultados = async (resultados, user, bolao) => {
+const salvarResultados = async (resultados, user, bolao, dataPrimeiroJogo) => {
   const dataAgora = new Date();
-  const dataPrimeiroJogo = new Date(2024, 5, 15, 10, 0, 0, 0);
   if (dataAgora.getTime() < dataPrimeiroJogo.getTime()) {
     await updateDoc(doc(database, "resultadosUsuariosBoloes", bolao), {
       [`usuarios.${user.uid}`]: resultados,
