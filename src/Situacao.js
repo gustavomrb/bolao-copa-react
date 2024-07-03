@@ -1,14 +1,15 @@
-import { Card, Grid, Typography } from "@mui/material";
+import { Button, Card, Grid, Typography } from "@mui/material";
 import { useContext, useEffect, useState } from "react";
-import { buscaUsuarios } from "./firebase";
+import { buscaUsuarios, atualizaPago } from "./firebase";
 import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
 import HighlightOffRoundedIcon from "@mui/icons-material/HighlightOffRounded";
 import { GlobalContext } from "./App";
 
 function Situacao() {
-  const { todosUsuarios, setTodosUsuarios, resultadosUsuarios, jogosCopa, boloes, bolaoAtual } =
+  const { user, todosUsuarios, setTodosUsuarios, resultadosUsuarios, jogosCopa, boloes, bolaoAtual } =
     useContext(GlobalContext);
   const [situacoes, setSituacoes] = useState([]);
+  const [userBanco, setUserBanco] = useState(null);
 
   useEffect(() => {
     if (todosUsuarios.length === 0) {
@@ -20,6 +21,7 @@ function Situacao() {
 
   useEffect(() => {
     if (todosUsuarios.length > 0) {
+      setUserBanco(todosUsuarios.find((u) => u.id === user.uid).data);
       geraSituacao();
     }
   }, [todosUsuarios]);
@@ -55,15 +57,24 @@ function Situacao() {
       }
 
       situacoes.push({
+        id: usuario.id,
         nome: todosUsuarios.find((u) => u.id === usuario.id).data.nome,
         resultados: resultados,
         artilheiroCampeao: artilheiroCampeao,
-        pago: false,
+        pago: usuario.data.pago === undefined ? false : usuario.data.pago,
       });
     }
 
     setSituacoes(situacoes);
   };
+
+  const atualizarPagamento = (usuario) => {
+    atualizaPago(bolaoAtual, usuario).then(() => {
+      console.log(usuario);
+      usuario.pago = !usuario.pago;
+    })
+    setSituacoes(situacoes)
+  }
 
   return (
     <Grid container justifyContent={"center"} alignItems={"center"} mt={5}>
@@ -90,7 +101,11 @@ function Situacao() {
                   <Typography variant="body2">{u.nome}</Typography>
                 </Grid>
                 <Grid item xs={2}>
-                  {u.pago ? <CheckCircleRoundedIcon /> : <HighlightOffRoundedIcon />}
+                  {userBanco.isAdmin ? (
+                  <Button onClick={() => atualizarPagamento(u)}>
+                  {u.pago && u.pago === true ? <CheckCircleRoundedIcon/> : <HighlightOffRoundedIcon />}
+                  </Button>
+                  ) : (u.pago && u.pago === true ? <CheckCircleRoundedIcon/> : <HighlightOffRoundedIcon />)}
                 </Grid>
                 <Grid item xs={2}>
                   {u.resultados ? <CheckCircleRoundedIcon /> : <HighlightOffRoundedIcon />}

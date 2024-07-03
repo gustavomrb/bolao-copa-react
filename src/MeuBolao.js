@@ -18,21 +18,7 @@ import { useTheme } from "@emotion/react";
 import { CalendarMonth, SortByAlphaRounded } from "@mui/icons-material";
 import { useContext } from "react";
 import { GlobalContext } from "./App";
-
-const pegaData = (timestamp) => {
-  const date = timestamp.toDate();
-  return date.toLocaleDateString("pt-BR");
-};
-
-const pegaDataCurta = (timestamp) => {
-  const date = timestamp.toDate().toLocaleDateString("pt-BR").split("/");
-  return `${date[0]}/${date[1]}`;
-};
-
-const pegaHorario = (timestamp) => {
-  const date = timestamp.toDate().toLocaleTimeString("pt-BR").split(":");
-  return `${date[0]}:${date[1]}`;
-};
+import { getConvocados, organizaJogosPorData, organizaJogosPorGrupo, timeStampToShortDate, timestampToDate, timestampToTime } from "./utils";
 
 function MeuBolao() {
   const [resultados, setResultados] = useState([]);
@@ -51,53 +37,13 @@ function MeuBolao() {
   const theme = useTheme();
   const isXs = useMediaQuery(theme.breakpoints.only("xs"));
 
-  const getConvocados = () => {
-    const convocados = [];
-    convocados.push({ selecao: "", jogador: "" });
-    for (let sc of selecoesCopa.current) {
-      for (let jogador of sc.data.convocados) {
-        convocados.push({ selecao: sc.data.nome, jogador: jogador });
-      }
-    }
-    return convocados;
-  };
-
-  const organizarPorData = (fase) => {
-    fase = fase ? fase : faseAtual;
-    const organizadosData = [];
-    const datas = [
-      ...new Set(
-        jogosCopa.current
-          .filter((j) => j.data.fase === fase)
-          .map((j) => j.data.data.toDate().toLocaleDateString("pt-BR"))
-      ),
-    ].sort();
-    console.log(datas);
-
-    for (let data of datas) {
-      const dataJson = { data: data, jogos: [] };
-      dataJson.jogos = jogosCopa.current
-        .filter((j) => j.data.data.toDate().toLocaleDateString("pt-BR") === data && j.data.fase === fase)
-        .sort((a, b) => a.data.data - b.data.data);
-      organizadosData.push(dataJson);
-    }
-    setJogosShow(organizadosData);
+  const organizarPorData = () => {
+    setJogosShow(organizaJogosPorData(faseAtual, jogosCopa.current));
     setSortValue("d");
   };
 
   const organizarPorGrupo = (fase) => {
-    fase = fase ? fase : faseAtual;
-    console.log("entrou organizar");
-    const organizadosGrupo = [];
-    const grupos = fase === 1 ? [...new Set(jogosCopa.current.map((item) => item.data.grupo))].sort() : ["A"];
-    for (let grupo of grupos) {
-      const grupoJson = { grupo: grupo, jogos: [] };
-      grupoJson.jogos = jogosCopa.current
-        .filter((j) => j.data.grupo === grupo && j.data.fase === fase)
-        .sort((a, b) => a.data.data.toDate() - b.data.data.toDate());
-      organizadosGrupo.push(grupoJson);
-    }
-    setJogosShow(organizadosGrupo);
+    setJogosShow(organizaJogosPorGrupo(fase ? fase : faseAtual, jogosCopa.current));
     setSortValue("g");
   };
 
@@ -125,14 +71,8 @@ function MeuBolao() {
   };
 
   useEffect(() => {
-    console.log("entrou useEffect resultadosUsuario");
-    console.log(resultadosUsuarios.length);
-    console.log(carregouInformacoesIniciais.current);
-
     if (resultadosUsuarios.length > 0 && !carregouInformacoesIniciais.current) {
-      console.log("Carrega as informações.");
       let res = resultadosUsuarios.find((r) => r.id === user.uid);
-      console.log(res);
       if (res && res.data.jogos) {
         res = checaNovosResultadosUsuario(res.data);
       } else {
@@ -148,7 +88,7 @@ function MeuBolao() {
       }
 
       if (selecoesCopa.current.length > 0) {
-        let convocadosJson = getConvocados();
+        let convocadosJson = getConvocados(selecoesCopa.current);
         setConvocados(convocadosJson);
         setValueArtilheiro(convocadosJson.find((c) => c.jogador === resultados.artilheiro));
       }
@@ -158,7 +98,6 @@ function MeuBolao() {
   }, [resultadosUsuarios]);
 
   useEffect(() => {
-    console.log("entrou useEffect convocados");
     setValueArtilheiro(convocados.find((c) => c.jogador === resultados.artilheiro));
   }, [convocados]);
 
@@ -237,11 +176,11 @@ function MeuBolao() {
                 <SortByAlphaRounded />
               </IconButton>
             </Grid>
-            {/*<Grid>
+            <Grid>
               <IconButton onClick={() => organizarPorData()}>
                 <CalendarMonth />
               </IconButton>
-            </Grid>*/}
+            </Grid>
           </Grid>
           {jogosShow.map((j, i) => {
             return (
@@ -294,11 +233,11 @@ function MeuBolao() {
                           >
                             <Grid item xs={4} sm={5} display={sortValue === "d" ? "none" : "block"}>
                               <Typography variant="body2">
-                                {isXs ? pegaDataCurta(jo.data.data) : pegaData(jo.data.data)}
+                                {isXs ? timeStampToShortDate(jo.data.data) : timestampToDate(jo.data.data)}
                               </Typography>
                             </Grid>
                             <Grid item xs={3}>
-                              <Typography variant="body2">{pegaHorario(jo.data.data)}</Typography>
+                              <Typography variant="body2">{timestampToTime(jo.data.data)}</Typography>
                             </Grid>
                             <Grid item xs={1} sm={3} display={sortValue === "g" ? "none" : "block"}>
                               <Typography variant="body2">{jo.data.grupo}</Typography>

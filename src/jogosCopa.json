@@ -1,58 +1,30 @@
 [
   {
-    "horario": "16:00",
-    "times": ["Espanha", "Geórgia"],
+    "horario": "13:00",
+    "times": ["Espanha", "Alemanha"],
     "grupo": "A",
-    "fase": 2,
-    "data": "30/06/2024"
-  },
-  {
-    "horario": "16:00",
-    "times": ["Alemanha", "Dinamarca"],
-    "grupo": "A",
-    "fase": 2,
-    "data": "29/06/2024"
+    "fase": 3,
+    "data": "05/07/2024"
   },
   {
     "horario": "16:00",
-    "times": ["Portugal", "Eslovênia"],
+    "times": ["Portugal", "França"],
     "grupo": "A",
-    "fase": 2,
-    "data": "01/07/2024"
-  },
-  {
-    "horario": "13:00",
-    "times": ["França", "Bélgica"],
-    "grupo": "A",
-    "fase": 2,
-    "data": "01/07/2024"
-  },
-  {
-    "horario": "13:00",
-    "times": ["Romênia", "Holanda"],
-    "grupo": "A",
-    "fase": 2,
-    "data": "02/07/2024"
+    "fase": 3,
+    "data": "05/07/2024"
   },
   {
     "horario": "16:00",
-    "times": ["Áustria", "Turquia"],
+    "times": ["Holanda", "Turquia"],
     "grupo": "A",
     "fase": 2,
-    "data": "02/07/2024"
+    "data": "06/07/2024"
   },
   {
     "horario": "13:00",
-    "times": ["Inglaterra", "Eslováquia"],
+    "times": ["Inglaterra", "Suíça"],
     "grupo": "A",
-    "fase": 2,
-    "data": "30/06/2024"
-  },
-  {
-    "horario": "13:00",
-    "times": ["Suíça", "Itália"],
-    "grupo": "A",
-    "fase": 2,
-    "data": "29/06/2024"
+    "fase": 3,
+    "data": "06/07/2024"
   }
 ]

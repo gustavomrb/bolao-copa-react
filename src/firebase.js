@@ -99,7 +99,8 @@ const database = getFirestore(app);
 })();*/
 
 /*(async () => {
-  let equipesBolao = await getDoc(doc(database, "equipesBolao", "De1Xl4hSYBWbqHLjAjDp"));
+  const bolao = "De1Xl4hSYBWbqHLjAjDp"
+  let equipesBolao = await getDoc(doc(database, "equipesBolao", bolao));
   equipesBolao = new Map(Object.entries(equipesBolao.data().equipes));
   const idsJogos = [];
   for (let jogoCopa of jogosCopa) {
@@ -125,7 +126,7 @@ const database = getFirestore(app);
     };
 
     const idJogo = doc(collection(database, "equipesBolao")).id;
-    await updateDoc(doc(database, "jogosBolao", "De1Xl4hSYBWbqHLjAjDp"), { [`jogos.${idJogo}`]: jogo });
+    await updateDoc(doc(database, "jogosBolao", bolao), { [`jogos.${idJogo}`]: jogo });
     console.log("fez update");
   }
 })();*/
@@ -280,6 +281,10 @@ const signOutUser = () => {
   return signOut(auth);
 };
 
+const atualizaPago = async (idBolao, usuario) => {
+  await updateDoc(doc(database, "resultadosUsuariosBoloes", idBolao), { [`usuarios.${usuario.id}.pago`]: !usuario.pago });
+}
+
 export {
   app,
   auth,
@@ -298,4 +303,5 @@ export {
   buscaUsuario,
   updateJogoCopa,
   atualizaPontosUsuario,
+  atualizaPago
 };
