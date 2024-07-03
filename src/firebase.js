@@ -99,9 +99,8 @@ const database = getFirestore(app);
 })();*/
 
 /*(async () => {
-  let equipesBolao = await getDoc(doc(database, "equipesBolao", "lLA1fU7Qc07KO848giFn"));
+  let equipesBolao = await getDoc(doc(database, "equipesBolao", "De1Xl4hSYBWbqHLjAjDp"));
   equipesBolao = new Map(Object.entries(equipesBolao.data().equipes));
-  console.log(jogosCopa);
   const idsJogos = [];
   for (let jogoCopa of jogosCopa) {
     let selecao1,
@@ -126,24 +125,8 @@ const database = getFirestore(app);
     };
 
     const idJogo = doc(collection(database, "equipesBolao")).id;
-    await updateDoc(doc(database, "jogosBolao", "lLA1fU7Qc07KO848giFn"), { [`jogos.${idJogo}`]: jogo });
+    await updateDoc(doc(database, "jogosBolao", "De1Xl4hSYBWbqHLjAjDp"), { [`jogos.${idJogo}`]: jogo });
     console.log("fez update");
-    idsJogos.push(idJogo);
-  }
-
-  const usuarios = (await getDocs(collection(database, "users"))).docs;
-  for (let usuario of usuarios) {
-    for (let idJogo of idsJogos) {
-      await updateDoc(doc(database, "resultadosUsuariosBoloes", "lLA1fU7Qc07KO848giFn"), {
-        [`usuarios.${usuario.id}.jogos.${idJogo}`]: { gols1: "", gols2: "", pontos: "" },
-        [`usuarios.${usuario.id}.artilheiro`]: "",
-        [`usuarios.${usuario.id}.campeao`]: "",
-      });
-    }
-
-    /*await updateDoc(doc(database, "users", usuario.id), {
-      resultadosFase1: false,
-    });
   }
 })();*/
 

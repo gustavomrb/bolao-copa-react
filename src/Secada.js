@@ -26,7 +26,8 @@ function Secada() {
   const [usuarioAtual, setUsuarioAtual] = useState("");
   const [faseAtual, setFaseAtual] = useState(1);
 
-  const { jogosCopa, resultadosUsuarios, selecoesCopa, todosUsuarios, setTodosUsuarios } = useContext(GlobalContext);
+  const { jogosCopa, resultadosUsuarios, selecoesCopa, todosUsuarios, setTodosUsuarios, boloes, bolaoAtual } =
+    useContext(GlobalContext);
 
   const theme = useTheme();
   const isXs = useMediaQuery(theme.breakpoints.only("xs"));
@@ -121,11 +122,11 @@ function Secada() {
           <Grid item container xs={12} justifyContent={"end"} sx={{ pt: 1 }}>
             <Grid item xs={4} sm={2} pb={1}>
               <Select value={faseAtual} fullWidth onChange={(e) => setFaseAtual(e.target.value)} size={"small"}>
-                <MenuItem value={1}>Primeira Fase</MenuItem>
-                <MenuItem value={2}>Oitavas de Final</MenuItem>
-                <MenuItem value={3}>Quartas de Final</MenuItem>
-                <MenuItem value={4}>Semi-Final</MenuItem>
-                <MenuItem value={5}>Final e 3 lugar</MenuItem>
+                {boloes
+                  .find((b) => b.id === bolaoAtual)
+                  .data.fases.map((f) => (
+                    <MenuItem value={f.id}>{f.nome}</MenuItem>
+                  ))}
               </Select>
             </Grid>
             <Grid item xs={4} sm={2} mr={"auto"} pb={1}>

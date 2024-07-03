@@ -160,23 +160,20 @@ function App() {
               <ListItemText primary="Classificação" />
             </ListItemButton>
           </ListItem>
-          {bolaoAtual && bolaoAtual !== "lLA1fU7Qc07KO848giFn" ? (
-            <ListItem
-              disablePadding
-              onClick={() => {
-                setMenuAberto(false);
-                navigate("../secada");
-              }}
-            >
-              <ListItemButton>
-                <ListItemIcon>
-                  <Toc />
-                </ListItemIcon>
-                <ListItemText primary="Área da Secada" />
-              </ListItemButton>
-            </ListItem>
-          ) : null}
-
+          <ListItem
+            disablePadding
+            onClick={() => {
+              setMenuAberto(false);
+              navigate("../secada");
+            }}
+          >
+            <ListItemButton>
+              <ListItemIcon>
+                <Toc />
+              </ListItemIcon>
+              <ListItemText primary="Área da Secada" />
+            </ListItemButton>
+          </ListItem>
           <ListItem
             disablePadding
             onClick={() => {

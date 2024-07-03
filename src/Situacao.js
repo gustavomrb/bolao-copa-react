@@ -6,7 +6,8 @@ import HighlightOffRoundedIcon from "@mui/icons-material/HighlightOffRounded";
 import { GlobalContext } from "./App";
 
 function Situacao() {
-  const { todosUsuarios, setTodosUsuarios, resultadosUsuarios } = useContext(GlobalContext);
+  const { todosUsuarios, setTodosUsuarios, resultadosUsuarios, jogosCopa, boloes, bolaoAtual } =
+    useContext(GlobalContext);
   const [situacoes, setSituacoes] = useState([]);
 
   useEffect(() => {
@@ -28,12 +29,16 @@ function Situacao() {
     for (let usuario of resultadosUsuarios) {
       let resultados = true;
       let artilheiroCampeao = true;
-      for (let jogoId in usuario.data.jogos) {
+      let faseAtual = boloes.find((b) => b.id === bolaoAtual).data.faseAtual;
+      let jogosFaseAtual = jogosCopa.current.filter((j) => j.data.fase === faseAtual);
+
+      for (let jogoFaseAtual of jogosFaseAtual) {
         if (
-          usuario.data.jogos[jogoId].gols1 === null ||
-          usuario.data.jogos[jogoId].gols1 === "" ||
-          usuario.data.jogos[jogoId].gols2 === null ||
-          usuario.data.jogos[jogoId].gols2 === ""
+          !usuario.data.jogos[jogoFaseAtual.id] ||
+          usuario.data.jogos[jogoFaseAtual.id].gols1 === null ||
+          usuario.data.jogos[jogoFaseAtual.id].gols1 === "" ||
+          usuario.data.jogos[jogoFaseAtual.id].gols2 === null ||
+          usuario.data.jogos[jogoFaseAtual.id].gols2 === ""
         ) {
           resultados = false;
           break;

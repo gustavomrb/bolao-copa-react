@@ -46,7 +46,7 @@ function MeuBolao() {
   const [convocados, setConvocados] = useState([]);
   const carregouInformacoesIniciais = useRef(false);
 
-  const { user, jogosCopa, resultadosUsuarios, selecoesCopa, bolaoAtual } = useContext(GlobalContext);
+  const { user, jogosCopa, resultadosUsuarios, selecoesCopa, bolaoAtual, boloes } = useContext(GlobalContext);
 
   const theme = useTheme();
   const isXs = useMediaQuery(theme.breakpoints.only("xs"));
@@ -112,6 +112,18 @@ function MeuBolao() {
     return novoResult;
   };
 
+  const checaNovosResultadosUsuario = (res) => {
+    for (let jogo of jogosCopa.current) {
+      if (!res.jogos[jogo.id]) {
+        res.jogos[jogo.id] = {};
+        res.jogos[jogo.id].gols1 = "";
+        res.jogos[jogo.id].gols2 = "";
+        res.jogos[jogo.id].pontos = "";
+      }
+    }
+    return res;
+  };
+
   useEffect(() => {
     console.log("entrou useEffect resultadosUsuario");
     console.log(resultadosUsuarios.length);
@@ -122,7 +134,7 @@ function MeuBolao() {
       let res = resultadosUsuarios.find((r) => r.id === user.uid);
       console.log(res);
       if (res && res.data.jogos) {
-        res = res.data;
+        res = checaNovosResultadosUsuario(res.data);
       } else {
         res = criarNovoResultadoUsuario();
       }
@@ -196,8 +208,7 @@ function MeuBolao() {
 
   return (
     <Grid container justifyContent={"center"} alignItems={"center"}>
-      {/* {jogosShow && resultados && selecoesCopa.current && resultadosUsuarios && bolaoAtual && valueArtilheiro ? ( */}
-      {carregouInformacoesIniciais.current ? (
+      {carregouInformacoesIniciais.current && valueArtilheiro ? (
         <Grid item xs={12} sm={10} container direction={"column"}>
           <Grid item container xs={12} justifyContent={"end"} sx={{ pt: 1 }}>
             <Grid item xs={4} sm={2} pb={1}>
@@ -211,11 +222,11 @@ function MeuBolao() {
                 }}
                 size={"small"}
               >
-                <MenuItem value={1}>Primeira Fase</MenuItem>
-                <MenuItem value={2}>Oitavas de Final</MenuItem>
-                <MenuItem value={3}>Quartas de Final</MenuItem>
-                <MenuItem value={4}>Semi-Final</MenuItem>
-                <MenuItem value={5}>Final e 3 lugar</MenuItem>
+                {boloes
+                  .find((b) => b.id === bolaoAtual)
+                  .data.fases.map((f) => (
+                    <MenuItem value={f.id}>{f.nome}</MenuItem>
+                  ))}
               </Select>
             </Grid>
             <Grid item ml={4} mr={"auto"} alignSelf={"center"} visibility={faseAtual === 1 ? "hidden" : "visible"}>
@@ -226,11 +237,11 @@ function MeuBolao() {
                 <SortByAlphaRounded />
               </IconButton>
             </Grid>
-            <Grid>
+            {/*<Grid>
               <IconButton onClick={() => organizarPorData()}>
                 <CalendarMonth />
               </IconButton>
-            </Grid>
+            </Grid>*/}
           </Grid>
           {jogosShow.map((j, i) => {
             return (
@@ -379,6 +390,7 @@ function MeuBolao() {
                   return o.jogador === v.jogador;
                 }}
                 defaultValue={{ jogador: "", selecao: "" }}
+                disabled={true}
               />
             </Grid>
             <Grid item xs={6} sm={4}>
@@ -390,6 +402,7 @@ function MeuBolao() {
                 onChange={(e, nv) => setValueCampeao(nv)}
                 inputValue={resultados.campeao}
                 onInputChange={(e, nv) => handleArtilheiroCampeao(nv, "campeao")}
+                disabled={true}
               />
             </Grid>
           </Grid>

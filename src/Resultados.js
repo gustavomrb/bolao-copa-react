@@ -29,7 +29,7 @@ function Resultados() {
   const [userBanco, setUserBanco] = useState(null);
   const [faseAtual, setFaseAtual] = useState(1);
 
-  const { user, jogosCopa, resultadosUsuarios, selecoesCopa, todosUsuarios, setTodosUsuarios, bolaoAtual } =
+  const { user, jogosCopa, resultadosUsuarios, selecoesCopa, todosUsuarios, setTodosUsuarios, bolaoAtual, boloes } =
     useContext(GlobalContext);
 
   const theme = useTheme();
@@ -74,7 +74,7 @@ function Resultados() {
     let somaPontos = 0;
     let users = 0;
     for (let resUsuario of resultadosUsuarios) {
-      const res = resUsuario.data.jogos[idJogo];
+      const res = resUsuario.data.jogos[idJogo] ? resUsuario.data.jogos[idJogo] : 0;
       if (!isNaN(res.pontos)) {
         somaPontos += res.pontos;
         users += 1;
@@ -93,33 +93,36 @@ function Resultados() {
         console.log("entrou");
         updateJogoCopa(bolaoAtual, jogoCopaNew.id, jogoCopaNew.data);
         for (let resUsuario of resultadosUsuarios) {
-          if (jogoCopaNew.data.gols1 === null) {
-            const jogoUsuario = resUsuario.data.jogos[jogoCopaNew.id];
-            jogoUsuario.pontos = "";
-            atualizaPontosUsuario(bolaoAtual, resUsuario.id, jogoCopaNew.id, "");
-          } else {
-            let pontos = 0;
-            const jogoUsuario = resUsuario.data.jogos[jogoCopaNew.id];
-            const cravou = jogoCopaNew.data.gols1 === jogoUsuario.gols1 && jogoCopaNew.data.gols2 === jogoUsuario.gols2;
-            const acertouVencedor =
-              (jogoCopaNew.data.gols1 > jogoCopaNew.data.gols2 && jogoUsuario.gols1 > jogoUsuario.gols2) ||
-              (jogoCopaNew.data.gols1 < jogoCopaNew.data.gols2 && jogoUsuario.gols1 < jogoUsuario.gols2);
-            const acertouMargem =
-              jogoCopaNew.data.gols1 - jogoCopaNew.data.gols2 === jogoUsuario.gols1 - jogoUsuario.gols2;
-            const acertouGols =
-              jogoCopaNew.data.gols1 === jogoUsuario.gols1 || jogoCopaNew.data.gols2 === jogoUsuario.gols2;
+          if (resUsuario.data.jogos[jogoCopaNew.id]) {
+            if (jogoCopaNew.data.gols1 === null) {
+              const jogoUsuario = resUsuario.data.jogos[jogoCopaNew.id];
+              jogoUsuario.pontos = "";
+              atualizaPontosUsuario(bolaoAtual, resUsuario.id, jogoCopaNew.id, "");
+            } else {
+              let pontos = 0;
+              const jogoUsuario = resUsuario.data.jogos[jogoCopaNew.id];
+              const cravou =
+                jogoCopaNew.data.gols1 === jogoUsuario.gols1 && jogoCopaNew.data.gols2 === jogoUsuario.gols2;
+              const acertouVencedor =
+                (jogoCopaNew.data.gols1 > jogoCopaNew.data.gols2 && jogoUsuario.gols1 > jogoUsuario.gols2) ||
+                (jogoCopaNew.data.gols1 < jogoCopaNew.data.gols2 && jogoUsuario.gols1 < jogoUsuario.gols2);
+              const acertouMargem =
+                jogoCopaNew.data.gols1 - jogoCopaNew.data.gols2 === jogoUsuario.gols1 - jogoUsuario.gols2;
+              const acertouGols =
+                jogoCopaNew.data.gols1 === jogoUsuario.gols1 || jogoCopaNew.data.gols2 === jogoUsuario.gols2;
 
-            if (cravou) {
-              pontos = 10;
-            } else if (acertouMargem || (acertouVencedor && acertouGols)) {
-              pontos = 7;
-            } else if (acertouVencedor) {
-              pontos = 5;
-            } else if (acertouGols) {
-              pontos = 2;
+              if (cravou) {
+                pontos = 10;
+              } else if (acertouMargem || (acertouVencedor && acertouGols)) {
+                pontos = 7;
+              } else if (acertouVencedor) {
+                pontos = 5;
+              } else if (acertouGols) {
+                pontos = 2;
+              }
+              jogoUsuario.pontos = pontos;
+              atualizaPontosUsuario(bolaoAtual, resUsuario.id, jogoCopaNew.id, pontos);
             }
-            jogoUsuario.pontos = pontos;
-            atualizaPontosUsuario(bolaoAtual, resUsuario.id, jogoCopaNew.id, pontos);
           }
         }
       }
@@ -174,11 +177,11 @@ function Resultados() {
                 }}
                 size={"small"}
               >
-                <MenuItem value={1}>Primeira Fase</MenuItem>
-                <MenuItem value={2}>Oitavas de Final</MenuItem>
-                <MenuItem value={3}>Quartas de Final</MenuItem>
-                <MenuItem value={4}>Semi-Final</MenuItem>
-                <MenuItem value={5}>Final e 3 lugar</MenuItem>
+                {boloes
+                  .find((b) => b.id === bolaoAtual)
+                  .data.fases.map((f) => (
+                    <MenuItem value={f.id}>{f.nome}</MenuItem>
+                  ))}
               </Select>
             </Grid>
             <Grid item>
