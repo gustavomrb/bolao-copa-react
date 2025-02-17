@@ -72,34 +72,10 @@ const database = getFirestore(app);
   await setDoc(doc(database, "equipesBolao", "lLA1fU7Qc07KO848giFn"), equipesBolaoNovo);
 })();*/
 
-//Atualiza se pessoa mandou todos os resultados e artilheiro e campeão.
 /*(async () => {
-  const usersSnap = await getDocs(collection(database, "users"));
-  const usersJson = usersSnap.docs;
-  const resultadosSnap = await getDocs(collection(database, "resultadosUsuario"));
-  const resultadosJson = resultadosSnap.docs;
-
-  for (let user of usersJson) {
-    let resultadosCompletos = true;
-    const resultado = resultadosJson.find((r) => r.id === user.id);
-    for (let jogoId in resultado.data().jogos) {
-      const jogo = resultado.data().jogos[jogoId];
-      if (jogo.gols1 === "" || jogo.gols2 === "") {
-        resultadosCompletos = false;
-        break;
-      }
-    }
-    const artilheiroCampeao = resultado.data().artilheiro !== "" && resultado.data().campeao !== "";
-    const userDoc = doc(database, "users", user.id);
-    await updateDoc(userDoc, {
-      artilheiroCampeao: artilheiroCampeao,
-      resultadosFase1: resultadosCompletos,
-    });
-  }
-})();*/
-
-/*(async () => {
-  const bolao = "De1Xl4hSYBWbqHLjAjDp"
+  //Euro - De1Xl4hSYBWbqHLjAjDp
+  //America - lLA1fU7Qc07KO848giFn
+  const bolao = "De1Xl4hSYBWbqHLjAjDp";
   let equipesBolao = await getDoc(doc(database, "equipesBolao", bolao));
   equipesBolao = new Map(Object.entries(equipesBolao.data().equipes));
   const idsJogos = [];
@@ -128,42 +104,6 @@ const database = getFirestore(app);
     const idJogo = doc(collection(database, "equipesBolao")).id;
     await updateDoc(doc(database, "jogosBolao", bolao), { [`jogos.${idJogo}`]: jogo });
     console.log("fez update");
-  }
-})();*/
-
-//Cria jogosCopa e resultadosUsuarios para um bolão.
-/*(async () => {
-  const selecoesCopa = (await getDocs(collection(database, "selecoesCopa"))).docs;
-  const idsJogos = [];
-  for (let jogoCopa of jogosCopa) {
-    const selecao1 = selecoesCopa.find((s) => s.data().nome === jogoCopa.times[0]).id;
-    const selecao2 = selecoesCopa.find((s) => s.data().nome === jogoCopa.times[1]).id;
-    const dia = parseInt(jogoCopa.data.split("/")[0]);
-    const horarioSplit = jogoCopa.horario.split(":");
-    const jogo = {
-      data: Timestamp.fromDate(new Date(2022, 11, dia, parseInt(horarioSplit[0]), 0, 0, 0)),
-      fase: jogoCopa.fase,
-      gols1: null,
-      gols2: null,
-      grupo: "A",
-      times: [selecao1, selecao2],
-    };
-
-    const docRef = await addDoc(collection(database, "jogosCopa"), jogo);
-    idsJogos.push(docRef.id);
-  }
-
-  const usuarios = (await getDocs(collection(database, "users"))).docs;
-  for (let usuario of usuarios) {
-    for (let idJogo of idsJogos) {
-      await updateDoc(doc(database, "resultadosUsuario", usuario.id), {
-        [`jogos.${idJogo}`]: { gols1: "", gols2: "", pontos: "" },
-      });
-    }
-
-    await updateDoc(doc(database, "users", usuario.id), {
-      resultadosFase1: false,
-    });
   }
 })();*/
 
@@ -282,8 +222,10 @@ const signOutUser = () => {
 };
 
 const atualizaPago = async (idBolao, usuario) => {
-  await updateDoc(doc(database, "resultadosUsuariosBoloes", idBolao), { [`usuarios.${usuario.id}.pago`]: !usuario.pago });
-}
+  await updateDoc(doc(database, "resultadosUsuariosBoloes", idBolao), {
+    [`usuarios.${usuario.id}.pago`]: !usuario.pago,
+  });
+};
 
 export {
   app,
@@ -303,5 +245,5 @@ export {
   buscaUsuario,
   updateJogoCopa,
   atualizaPontosUsuario,
-  atualizaPago
+  atualizaPago,
 };
