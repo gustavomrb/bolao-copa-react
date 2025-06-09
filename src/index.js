@@ -12,6 +12,7 @@ import Regras from "./Regras";
 import Resultados from "./Resultados";
 import Secada from "./Secada";
 import Classificacao from "./Classificacao";
+import Admin from "./Admin";
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(
@@ -28,6 +29,7 @@ root.render(
           <Route path="/resultados" element={<Resultados />} />
           <Route path="/secada" element={<Secada />} />
           <Route path="/classificacao" element={<Classificacao />} />
+          <Route path="/admin" element={<Admin />} />
         </Route>
       </Routes>
     </BrowserRouter>

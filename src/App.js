@@ -21,13 +21,20 @@ import {
   Toolbar,
   Typography,
 } from "@mui/material";
-import { Outlet, useNavigate } from "react-router-dom";
-import { auth, database, signOutUser } from "./firebase";
-import { LaptopChromebook, Toc, MenuRounded } from "@mui/icons-material";
+import { Outlet, useNavigate, Routes, Route } from "react-router-dom";
+import { auth, database, signOutUser, buscaUsuario } from "./firebase";
+import { LaptopChromebook, Toc, MenuRounded, SupervisorAccount } from "@mui/icons-material";
 import { useAuthState } from "react-firebase-hooks/auth";
 import React, { createContext, useEffect, useRef } from "react";
 import { useState } from "react";
 import { collection, onSnapshot, doc } from "firebase/firestore";
+import MeuBolao from "./MeuBolao";
+import Classificacao from "./Classificacao";
+import Secada from "./Secada";
+import Resultados from "./Resultados";
+import Situacao from "./Situacao";
+import Regras from "./Regras";
+import Admin from "./Admin";
 
 const darkTheme = createTheme({
   palette: {
@@ -47,6 +54,7 @@ function App() {
   const [bolaoAtual, setBolaoAtual] = useState("");
   const [campeaoAtual, setCampeaoAtual] = useState("");
   const [artilheiroAtual, setArtilheiroAtual] = useState("");
+  const [isAdmin, setIsAdmin] = useState(false);
 
   const selecoesCopa = useRef([]);
   let jogosCopa = useRef([]);
@@ -65,6 +73,15 @@ function App() {
           setBoloes(snapshot.docs.map((j) => ({ id: j.id, data: j.data() })));
         });
       }
+
+      buscaUsuario(user.uid).then((res) => {
+        const userDb = res.data();
+        if (userDb && userDb.isAdmin) {
+          setIsAdmin(true);
+        } else {
+          setIsAdmin(false);
+        }
+      });
     }
   }, [user]);
 
@@ -136,7 +153,7 @@ function App() {
             disablePadding
             onClick={() => {
               setMenuAberto(false);
-              navigate("../");
+              navigate("../home");
             }}
           >
             <ListItemButton>
@@ -216,6 +233,22 @@ function App() {
               <ListItemText primary="Regras" />
             </ListItemButton>
           </ListItem>
+          {isAdmin && (
+            <ListItem
+              disablePadding
+              onClick={() => {
+                setMenuAberto(false);
+                navigate("../admin");
+              }}
+            >
+              <ListItemButton>
+                <ListItemIcon>
+                  <SupervisorAccount />
+                </ListItemIcon>
+                <ListItemText primary="Admin" />
+              </ListItemButton>
+            </ListItem>
+          )}
           <ListItem disablePadding sx={{ flexDirection: "column", justifyContent: "center", mt: 1, gap: 0.5 }}>
             <Typography variant={"body1"}>Pix para pagamento</Typography>
             <Typography variant={"body2"}>21997586852</Typography>
@@ -325,3 +358,4 @@ function App() {
 }
 
 export default App;
+

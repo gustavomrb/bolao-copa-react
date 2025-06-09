@@ -71,7 +71,7 @@ function MeuBolao() {
   };
 
   useEffect(() => {
-    if (resultadosUsuarios.length > 0 && !carregouInformacoesIniciais.current) {
+    if (resultadosUsuarios.length >= 0 && !carregouInformacoesIniciais.current) {
       let res = resultadosUsuarios.find((r) => r.id === user.uid);
       if (res && res.data.jogos) {
         res = checaNovosResultadosUsuario(res.data);
