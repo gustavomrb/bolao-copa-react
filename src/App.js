@@ -21,20 +21,13 @@ import {
   Toolbar,
   Typography,
 } from "@mui/material";
-import { Outlet, useNavigate, Routes, Route } from "react-router-dom";
+import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import { auth, database, signOutUser, buscaUsuario } from "./firebase";
 import { LaptopChromebook, Toc, MenuRounded, SupervisorAccount } from "@mui/icons-material";
 import { useAuthState } from "react-firebase-hooks/auth";
 import React, { createContext, useEffect, useRef } from "react";
 import { useState } from "react";
 import { collection, onSnapshot, doc } from "firebase/firestore";
-import MeuBolao from "./MeuBolao";
-import Classificacao from "./Classificacao";
-import Secada from "./Secada";
-import Resultados from "./Resultados";
-import Situacao from "./Situacao";
-import Regras from "./Regras";
-import Admin from "./Admin";
 
 const darkTheme = createTheme({
   palette: {
@@ -58,6 +51,7 @@ function App() {
 
   const selecoesCopa = useRef([]);
   let jogosCopa = useRef([]);
+  let location = useLocation();
 
   useEffect(() => {
     if (!user) {
@@ -87,6 +81,10 @@ function App() {
 
   useEffect(() => {
     if (bolaoAtual && bolaoAtual !== "") {
+      console.log(location.pathname);
+      if(location.pathname !== "/") {
+        navigate("/");
+      }
       jogosCopa.current = [];
       setResultadosUsuarios([]);
       selecoesCopa.current = [];
@@ -123,8 +121,8 @@ function App() {
           resUsuArr.push({ id: idUser, data: mapaResUsu[idUser] });
         }
         setResultadosUsuarios(resUsuArr);
+        navigate("../home");
       });
-      navigate("../home");
     }
   }, [bolaoAtual]);
 

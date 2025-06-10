@@ -38,7 +38,7 @@ function Secada() {
       ...new Set(
         jogosCopa.current
           .filter((j) => j.data.fase === faseAtual)
-          .map((j) => j.data.data.toDate().toLocaleDateString("pt-BR"))
+          .map((j) => j.data.data.toDate().toLocaleDateString("pt-BR")).sort()
       ),
     ];
 
@@ -76,12 +76,12 @@ function Secada() {
     if (todosUsuarios.length === 0) {
       buscaUsuarios().then((v) => {
         setTodosUsuarios(v.docs.map((u) => ({ id: u.id, data: u.data() })));
-        setUsuarioAtual(v.docs[0].id);
+        setUsuarioAtual(resultadosUsuarios[0].id);
       });
     }
 
     if (!usuarioAtual && todosUsuarios.length > 0) {
-      setUsuarioAtual(todosUsuarios[0].id);
+      setUsuarioAtual(resultadosUsuarios[0].id);
     }
   }, [jogosCopa.current, todosUsuarios]);
 

@@ -71,7 +71,7 @@ function MeuBolao() {
   };
 
   useEffect(() => {
-    if (resultadosUsuarios.length >= 0 && !carregouInformacoesIniciais.current) {
+    if (resultadosUsuarios.length >= 0) {
       let res = resultadosUsuarios.find((r) => r.id === user.uid);
       if (res && res.data.jogos) {
         res = checaNovosResultadosUsuario(res.data);
@@ -80,33 +80,25 @@ function MeuBolao() {
       }
 
       setResultados(res);
-      //setValueArtilheiro(res.artilheiro);
       setValueCampeao(res.campeao);
 
       if (jogosShow.length === 0 && jogosCopa.current.length > 0) {
         organizarPorGrupo();
       }
 
+      console.log(selecoesCopa.current);
       if (selecoesCopa.current.length > 0) {
         let convocadosJson = getConvocados(selecoesCopa.current);
         setConvocados(convocadosJson);
-        setValueArtilheiro(convocadosJson.find((c) => c.jogador === resultados.artilheiro));
+        setValueArtilheiro(convocadosJson.find((c) => c.jogador === resultados.artilheiro) || {jogador:"", selecao:""});
       }
-
       carregouInformacoesIniciais.current = true;
     }
   }, [resultadosUsuarios]);
 
   useEffect(() => {
-    setValueArtilheiro(convocados.find((c) => c.jogador === resultados.artilheiro));
+    setValueArtilheiro(convocados.find((c) => c.jogador === resultados.artilheiro) || {jogador:"", selecao:""});
   }, [convocados]);
-
-  useEffect(() => {
-    if (bolaoAtual !== null) {
-      carregouInformacoesIniciais.current = false;
-      setJogosShow([]);
-    }
-  }, [bolaoAtual]);
 
   const handleInputChange = (event, propertyName, idJogo) => {
     const newResultados = JSON.parse(JSON.stringify(resultados));
@@ -147,7 +139,7 @@ function MeuBolao() {
 
   return (
     <Grid container justifyContent={"center"} alignItems={"center"}>
-      {carregouInformacoesIniciais.current && valueArtilheiro ? (
+      {carregouInformacoesIniciais.current ? (
         <Grid item xs={12} sm={10} container direction={"column"}>
           <Grid item container xs={12} justifyContent={"end"} sx={{ pt: 1 }}>
             <Grid item xs={4} sm={2} pb={1}>
@@ -329,7 +321,7 @@ function MeuBolao() {
                   return o.jogador === v.jogador;
                 }}
                 defaultValue={{ jogador: "", selecao: "" }}
-                disabled={true}
+                disabled={new Date() > jogosShow[0].jogos[0].data.data.toDate()}
               />
             </Grid>
             <Grid item xs={6} sm={4}>
@@ -341,7 +333,7 @@ function MeuBolao() {
                 onChange={(e, nv) => setValueCampeao(nv)}
                 inputValue={resultados.campeao}
                 onInputChange={(e, nv) => handleArtilheiroCampeao(nv, "campeao")}
-                disabled={true}
+                disabled={new Date() > jogosShow[0].jogos[0].data.data.toDate()}
               />
             </Grid>
           </Grid>

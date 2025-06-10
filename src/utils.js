@@ -30,7 +30,7 @@ const organizaJogosPorData = (fase, jogos) => {
       ...new Set(
         jogos
           .filter((j) => j.data.fase === fase)
-          .map((j) => j.data.data.toDate()).sort().map(d => d.toLocaleDateString("pt-BR"))
+          .map((j) => j.data.data.toDate().toLocaleDateString("pt-BR")).sort()
       ),
     ];
 
