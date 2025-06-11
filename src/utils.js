@@ -57,11 +57,34 @@ const organizaJogosPorGrupo = (fase, jogos) => {
     return organizadosGrupo;
   };
 
+// Adiciona função utilitária para calcular a pontuação de uma aposta em um único jogo
+function calculaPontosJogo(golsReal1, golsReal2, golsAposta1, golsAposta2) {
+  // Se algum placar não está definido, não há pontos
+  if (golsReal1 === null || golsReal2 === null || golsAposta1 === null || golsAposta2 === null) {
+    return 0;
+  }
+
+  // Regra de pontuação igual à utilizada em Resultados.js
+  const cravou = golsReal1 === golsAposta1 && golsReal2 === golsAposta2;
+  const acertouVencedor =
+    (golsReal1 > golsReal2 && golsAposta1 > golsAposta2) ||
+    (golsReal1 < golsReal2 && golsAposta1 < golsAposta2);
+  const acertouMargem = golsReal1 - golsReal2 === golsAposta1 - golsAposta2;
+  const acertouGols = golsReal1 === golsAposta1 || golsReal2 === golsAposta2;
+
+  if (cravou) return 10;
+  if (acertouMargem || (acertouVencedor && acertouGols)) return 7;
+  if (acertouVencedor) return 5;
+  if (acertouGols) return 2;
+  return 0;
+}
+
 export {
     timestampToDate,
     timeStampToShortDate,
     timestampToTime,
     getConvocados,
     organizaJogosPorData,
-    organizaJogosPorGrupo
+    organizaJogosPorGrupo,
+    calculaPontosJogo
 }

@@ -1,19 +1,57 @@
 import { useTheme } from "@emotion/react";
-import { Card, Grid, Typography, useMediaQuery } from "@mui/material";
-import { useContext, useEffect, useState } from "react";
+import { Card, Grid, Typography, useMediaQuery, Switch, TextField } from "@mui/material";
+import { useContext, useEffect, useMemo, useState } from "react";
 import { GlobalContext } from "./App";
 import { buscaUsuarios } from "./firebase";
 import DoneIcon from "@mui/icons-material/Done";
 import CloseIcon from "@mui/icons-material/Close";
+import { ArrowUpward, ArrowDownward, Remove } from "@mui/icons-material";
+import cloneDeep from "lodash.clonedeep";
+import { calculaPontosJogo, timeStampToShortDate, timestampToTime } from "./utils";
 
 function Classificacao() {
   const [classificacao, setClassificacao] = useState([]);
+  const [classificacaoOriginal, setClassificacaoOriginal] = useState([]);
+  const [simulacaoAtiva, setSimulacaoAtiva] = useState(false);
+  const [jogosSimulados, setJogosSimulados] = useState({}); // { jogoId: {gols1, gols2} }
 
-  const { resultadosUsuarios, todosUsuarios, setTodosUsuarios, jogosCopa, artilheiroAtual, campeaoAtual } =
-    useContext(GlobalContext);
+  const {
+    resultadosUsuarios,
+    todosUsuarios,
+    setTodosUsuarios,
+    jogosCopa,
+    artilheiroAtual,
+    campeaoAtual,
+    selecoesCopa,
+  } = useContext(GlobalContext);
 
   const theme = useTheme();
   const isXs = useMediaQuery(theme.breakpoints.only("xs"));
+
+  // Disponibilidade de simulação: somente se o primeiro jogo de TODAS as fases já ocorreu
+  const simDisponivel = useMemo(() => {
+    if (!jogosCopa.current || jogosCopa.current.length === 0) return false;
+    const fases = [...new Set(jogosCopa.current.map((j) => j.data.fase))];
+    const agora = new Date();
+    for (let fase of fases) {
+      const jogosFase = jogosCopa.current.filter((j) => j.data.fase === fase);
+      if (jogosFase.length === 0) return false;
+      const primeiro = jogosFase.reduce((min, j) => {
+        const d = j.data.data.toDate();
+        return d < min ? d : min;
+      }, new Date(8640000000000000));
+      if (primeiro > agora) return false;
+    }
+    return true;
+  }, [jogosCopa.current]);
+
+  // Se disponibilidade muda para false, garante que simulação seja desativada
+  useEffect(() => {
+    if (!simDisponivel && simulacaoAtiva) {
+      setSimulacaoAtiva(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [simDisponivel]);
 
   useEffect(() => {
     if (todosUsuarios.length === 0) {
@@ -29,7 +67,15 @@ function Classificacao() {
     }
   }, [todosUsuarios]);
 
-  const geraClassificacao = () => {
+  // Recalcula classificação quando há alteração em resultados simulados
+  useEffect(() => {
+    if (simulacaoAtiva) {
+      geraClassificacao(jogosSimulados);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [jogosSimulados]);
+
+  const geraClassificacao = (jogosOverride) => {
     const classificacao = [];
     for (let usuario of resultadosUsuarios) {
       let pontos = 0;
@@ -39,14 +85,22 @@ function Classificacao() {
       let campeao = 0;
       for (let jogoId in usuario.data.jogos) {
         const jogoCopa = jogosCopa.current.find((j) => j.id === jogoId);
-        if (usuario.data.jogos[jogoId].pontos !== "") {
-          pontos += usuario.data.jogos[jogoId].pontos;
-          if (usuario.data.jogos[jogoId].pontos === 10) {
-            cravadas += 1;
-          }
-          if (jogoCopa.data.fase > 1) {
-            mataMata += usuario.data.jogos[jogoId].pontos;
-          }
+        // Determina placar real a ser usado (override se existir)
+        const override = jogosOverride ? jogosOverride[jogoId] : null;
+        const golsReal1 = override && override.gols1 !== null && override.gols2 !== null ? override.gols1 : jogoCopa.data.gols1;
+        const golsReal2 = override && override.gols1 !== null && override.gols2 !== null ? override.gols2 : jogoCopa.data.gols2;
+
+        // Se ainda não há placar definido, ignora
+        if (golsReal1 === null || golsReal2 === null) continue;
+
+        const aposta = usuario.data.jogos[jogoId];
+        const pontosJogo = calculaPontosJogo(golsReal1, golsReal2, aposta.gols1, aposta.gols2);
+        pontos += pontosJogo;
+        if (pontosJogo === 10) {
+          cravadas += 1;
+        }
+        if (jogoCopa.data.fase > 1) {
+          mataMata += pontosJogo;
         }
       }
 
@@ -83,15 +137,56 @@ function Classificacao() {
     setClassificacao(classificacao);
   };
 
+  const handleInputSimulacao = (event, propertyName, jogoId) => {
+    const valor =
+      event.target.value !== "" && event.target.value.match(/[0-9]/)?.length > 0
+        ? parseInt(event.target.value)
+        : null;
+    setJogosSimulados((prev) => {
+      const novo = cloneDeep(prev);
+      if (!novo[jogoId]) novo[jogoId] = { gols1: null, gols2: null };
+      novo[jogoId][propertyName] = valor;
+      return novo;
+    });
+  };
+
   return (
     <Grid container justifyContent={"center"} alignItems={"center"}>
       {classificacao ? (
         <Grid item xs={12} sm={7} container direction={"column"}>
+          {/* Toggle Simulação */}
+          {simDisponivel && (
+            <Grid item xs={12} container justifyContent={"end"} alignItems={"center"} sx={{ pt: 1 }}>
+              <Typography variant="body2" sx={{ mr: 1 }}>
+                Simular
+              </Typography>
+              <Switch
+                checked={simulacaoAtiva}
+                onChange={(e) => {
+                  const ativo = e.target.checked;
+                  setSimulacaoAtiva(ativo);
+                  setJogosSimulados({});
+                  if (ativo) {
+                    setClassificacaoOriginal(classificacao);
+                  } else {
+                    // volta classificação original
+                    geraClassificacao();
+                  }
+                }}
+                size="small"
+              />
+            </Grid>
+          )}
           <Grid item xs={3} container sx={{ pt: 1, pb: 1, pl: 1 }} justifyContent={"space-evenly"}>
+            {simulacaoAtiva ? (
+              <Grid item xs={1}>
+                {/* coluna seta */}
+              </Grid>
+            ) : null}
             <Grid item xs={1}>
               <Typography variant="body2">{isXs ? "P" : "Posição"}</Typography>
             </Grid>
-            <Grid item xs={4}>
+            <Grid item xs={simulacaoAtiva ? 3 : 4}>
               <Typography variant="body2">{isXs ? "N" : "Nome"}</Typography>
             </Grid>
             <Grid item xs={1}>
@@ -113,6 +208,8 @@ function Classificacao() {
           <Card elevation={3} sx={{ pt: 1.5, pl: 1, borderRadius: 4 }}>
             <Grid container direction={"column"} spacing={2}>
               {classificacao.map((c, i) => {
+                const posOriginal = classificacaoOriginal.findIndex((o) => o.nome === c.nome);
+                const delta = simulacaoAtiva && posOriginal !== -1 ? posOriginal - i : 0;
                 return (
                   <Grid
                     item
@@ -121,7 +218,31 @@ function Classificacao() {
                     container
                     sx={i === classificacao.length - 1 ? {} : { borderBottom: 1, pb: 1 }}
                     justifyContent={"space-evenly"}
+                    alignItems={"center"}
                   >
+                    {simulacaoAtiva ? (
+                      <Grid
+                        item
+                        xs={1}
+                        sx={{ display: "flex", alignItems: "center", justifyContent: "center" }}
+                      >
+                        {delta > 0 ? (
+                          <ArrowUpward fontSize="small" color="success" />
+                        ) : delta < 0 ? (
+                          <ArrowDownward fontSize="small" color="error" />
+                        ) : (
+                          <Remove fontSize="small" />
+                        )}
+                        {delta !== 0 && (
+                          <Typography
+                            variant="caption"
+                            sx={{ ml: 0.25, color: delta > 0 ? "success.main" : "error.main" }}
+                          >
+                            {Math.abs(delta)}
+                          </Typography>
+                        )}
+                      </Grid>
+                    ) : null}
                     <Grid item xs={1}>
                       <Typography variant="body2">
                         {!classificacao[i - 1] ||
@@ -134,7 +255,7 @@ function Classificacao() {
                           : ""}
                       </Typography>
                     </Grid>
-                    <Grid item xs={4}>
+                    <Grid item xs={simulacaoAtiva ? 3 : 4}>
                       <Typography variant="body2">{c.nome}</Typography>
                     </Grid>
                     <Grid item xs={1}>
@@ -157,6 +278,60 @@ function Classificacao() {
               })}
             </Grid>
           </Card>
+          {/* Painel de Simulação */}
+          {simulacaoAtiva ? (
+            <Grid item xs={12} container direction={"column"} sx={{ mt: 3 }}>
+              <Typography variant="h6" sx={{ mb: 1 }}>
+                Jogos em aberto
+              </Typography>
+              {jogosCopa.current
+                .filter((j) => j.data.gols1 === null || j.data.gols2 === null)
+                .sort((a, b) => a.data.data.toDate() - b.data.data.toDate())
+                .map((j, idx) => {
+                  const time1Obj = selecoesCopa.current.find((s) => s.id === j.data.times[0]);
+                  const time2Obj = selecoesCopa.current.find((s) => s.id === j.data.times[1]);
+                  return (
+                    <Grid key={idx} container alignItems="center" spacing={1} sx={{ mb: 1 }}>
+                      <Grid item xs={2}>
+                        <Typography variant="body2">{
+                          `${timeStampToShortDate(j.data.data)} ${timestampToTime(j.data.data)}`
+                        }</Typography>
+                      </Grid>
+                      <Grid item xs={1}>
+                        <Typography variant="body2">{j.data.grupo}</Typography>
+                      </Grid>
+                      <Grid item xs={3}>
+                        <Typography variant="body2">{time1Obj ? time1Obj.data.nome : ""}</Typography>
+                      </Grid>
+                      <Grid item xs={1}>
+                        <TextField
+                          variant="standard"
+                          size="small"
+                          inputProps={{ inputMode: "numeric", pattern: "[0-9]", maxLength: 1, style: { textAlign: "center" } }}
+                          value={jogosSimulados[j.id]?.gols1 ?? ""}
+                          onChange={(e) => handleInputSimulacao(e, "gols1", j.id)}
+                        />
+                      </Grid>
+                      <Grid item xs={1}>
+                        <Typography variant="body2">x</Typography>
+                      </Grid>
+                      <Grid item xs={1}>
+                        <TextField
+                          variant="standard"
+                          size="small"
+                          inputProps={{ inputMode: "numeric", pattern: "[0-9]", maxLength: 1, style: { textAlign: "center" } }}
+                          value={jogosSimulados[j.id]?.gols2 ?? ""}
+                          onChange={(e) => handleInputSimulacao(e, "gols2", j.id)}
+                        />
+                      </Grid>
+                      <Grid item xs={3}>
+                        <Typography variant="body2">{time2Obj ? time2Obj.data.nome : ""}</Typography>
+                      </Grid>
+                    </Grid>
+                  );
+                })}
+            </Grid>
+          ) : null}
         </Grid>
       ) : null}
     </Grid>
