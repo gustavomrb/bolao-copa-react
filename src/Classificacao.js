@@ -50,12 +50,12 @@ function Classificacao() {
         }
       }
 
-      if (usuario.data.artilheiro === artilheiroAtual) {
+      if (usuario.data.artilheiro && usuario.data.artilheiro === artilheiroAtual) {
         pontos += 10;
         artilheiro = 10;
       }
 
-      if (usuario.data.campeao === campeaoAtual) {
+      if (usuario.data.campeao && usuario.data.campeao === campeaoAtual) {
         pontos += 10;
         campeao = 10;
       }

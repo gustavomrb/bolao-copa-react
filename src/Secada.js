@@ -117,7 +117,7 @@ function Secada() {
 
   return (
     <Grid container justifyContent={"center"} alignItems={"center"}>
-      {jogosShow && selecoesCopa.current && resultadosUsuarios && usuarioAtual ? (
+      {jogosShow && selecoesCopa.current && resultadosUsuarios && usuarioAtual && jogosShow[0].jogos[0].data.data.toDate() < new Date() ? (
         <Grid item xs={12} sm={10} container direction={"column"}>
           <Grid item container xs={12} justifyContent={"end"} sx={{ pt: 1 }}>
             <Grid item xs={4} sm={2} pb={1}>
@@ -149,7 +149,7 @@ function Secada() {
               </IconButton>
             </Grid>
           </Grid>
-          {jogosShow[0].jogos[0].data.data.toDate() < new Date() ? (jogosShow.map((j, i) => {
+          {jogosShow.map((j, i) => {
             return (
               <Grid container item xs={12} direction={"column"} key={i}>
                 <Grid item sx={{ pb: 1 }}>
@@ -251,8 +251,7 @@ function Secada() {
                 </Grid>
               </Grid>
             );
-          })) : (<Typography color={"red"}>{"Não pode ver ainda arrombado!"}</Typography>)}
-
+          })}
           <Grid item container direction={"column"} xs={12} sx={{ pt: 1, pb: 2 }} spacing={2}>
             <Grid item xs={3} sm={3}>
               <Typography>{`Artilheiro: ${
@@ -266,7 +265,7 @@ function Secada() {
             </Grid>
           </Grid>
         </Grid>
-      ) : null}
+      ) : (<Typography color={"red"}>{"Não pode ver ainda arrombado!"}</Typography>)}
     </Grid>
   );
 }

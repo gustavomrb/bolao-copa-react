@@ -140,7 +140,7 @@ function App() {
             setBolaoAtual(e.target.value);
           }}
         >
-          {boloes.map((b, i) => (
+          {boloes.sort((a, b) => b.data.anoTorneio - a.data.anoTorneio).map((b, i) => (
             <MenuItem key={i} value={b.id}>{`${b.data.nomeTorneio} - ${b.data.anoTorneio}`}</MenuItem>
           ))}
         </Select>
@@ -251,7 +251,7 @@ function App() {
             <Typography variant={"body1"}>Pix para pagamento</Typography>
             <Typography variant={"body2"}>21997586852</Typography>
             <Typography variant={"body2"}>Gustavo Mendonça</Typography>
-            <Typography variant={"body2"}>Valor: 25R$</Typography>
+            <Typography variant={"body2"}>Valor: 50R$</Typography>
           </ListItem>
         </List>
       ) : (
