@@ -105,6 +105,15 @@ function MeuBolao() {
     newResultados.jogos[idJogo][propertyName] =
       event.target.value !== "" && event.target.value.match(/[0-9]/).length > 0 ? parseInt(event.target.value) : null;
     setResultados(newResultados);
+
+    // Se o usuário digitou um caractere (limite de 1), move o foco para o próximo input
+    if (event.target.value.length === 1) {
+      const inputs = Array.from(document.querySelectorAll('input[data-bolao-input="true"]'));
+      const currentIndex = inputs.indexOf(event.target);
+      if (currentIndex > -1 && currentIndex < inputs.length - 1) {
+        inputs[currentIndex + 1].focus();
+      }
+    }
   };
 
   const handleArtilheiroCampeao = (newValue, propertyName) => {
@@ -247,6 +256,7 @@ function MeuBolao() {
                                   inputMode: "numeric",
                                   pattern: "[0-9]",
                                   maxLength: 1,
+                                  "data-bolao-input": "true",
                                   style: { textAlign: "center", fontSize: "0.875rem" },
                                 }}
                                 sx={{ typography: "body2" }}
@@ -268,6 +278,7 @@ function MeuBolao() {
                                   inputMode: "numeric",
                                   pattern: "[0-9]*",
                                   maxLength: 1,
+                                  "data-bolao-input": "true",
                                   style: { textAlign: "center", fontSize: "0.875rem" },
                                 }}
                                 onChange={(e) => handleInputChange(e, "gols2", jo.id)}
