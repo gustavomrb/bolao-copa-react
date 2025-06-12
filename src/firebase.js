@@ -1,6 +1,6 @@
 import { getAnalytics } from "firebase/analytics";
 import { initializeApp } from "firebase/app";
-import { createUserWithEmailAndPassword, getAuth, signInWithEmailAndPassword, signOut } from "firebase/auth";
+import { createUserWithEmailAndPassword, getAuth, signInWithEmailAndPassword, signOut, sendPasswordResetEmail } from "firebase/auth";
 import {
   collection,
   doc,
@@ -112,6 +112,10 @@ const atualizaPago = async (idBolao, usuario) => {
   });
 };
 
+const resetPassword = (email) => {
+  return sendPasswordResetEmail(auth, email);
+};
+
 export {
   app,
   auth,
@@ -131,4 +135,5 @@ export {
   updateJogoCopa,
   atualizaPontosUsuario,
   atualizaPago,
+  resetPassword,
 };

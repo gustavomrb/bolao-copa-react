@@ -11,7 +11,7 @@ import {
 } from "@mui/material";
 import { useEffect, useState } from "react";
 import { Link as RouterLink, useNavigate } from "react-router-dom";
-import { auth, logarUsuario } from "./firebase";
+import { auth, logarUsuario, resetPassword } from "./firebase";
 import { useAuthState } from "react-firebase-hooks/auth";
 
 const darkTheme = createTheme({
@@ -29,6 +29,14 @@ const retornaErro = (erro) => {
     return "E-mail inválido. Cheque e tente novamente.";
   }
 
+  if (erro.code === "auth/user-not-found") {
+    return "Usuário não encontrado para o e-mail informado.";
+  }
+
+  if (erro.code === "email-nao-informado") {
+    return "Informe o e-mail para redefinir a senha.";
+  }
+
   return "Erro ao tentar fazer login.";
 };
 
@@ -37,6 +45,7 @@ function LoginPage() {
   const [senha, setSenha] = useState("");
   const [user] = useAuthState(auth);
   const [erro, setErro] = useState("");
+  const [mensagem, setMensagem] = useState("");
 
   const navigate = useNavigate();
   useEffect(() => {
@@ -46,9 +55,26 @@ function LoginPage() {
   }, [user, navigate]);
 
   const handleLogin = () => {
+    setMensagem("");
     logarUsuario(email, senha)
       .then((userCredential) => {
         // Signed in
+      })
+      .catch((error) => {
+        setErro(error);
+      });
+  };
+
+  const handleForgotPassword = () => {
+    setErro("");
+    setMensagem("");
+    if (!email) {
+      setErro({ code: "email-nao-informado" });
+      return;
+    }
+    resetPassword(email)
+      .then(() => {
+        setMensagem("E-mail de redefinição de senha enviado! Verifique sua caixa de entrada.");
       })
       .catch((error) => {
         setErro(error);
@@ -101,12 +127,24 @@ function LoginPage() {
               </Typography>
             </Grid>
           ) : null}
+          {mensagem ? (
+            <Grid item xs={12} sx={{ mt: 2 }}>
+              <Typography variant={"body2"} color={"success.main"}>
+                {mensagem}
+              </Typography>
+            </Grid>
+          ) : null}
           <Grid item xs="auto" sx={{ mt: 2 }}>
             <Link component={RouterLink} to="/signup">
               <Button>
                 <Typography variant={"body2"}>Criar Conta</Typography>
               </Button>
             </Link>
+          </Grid>
+          <Grid item xs="auto" sx={{ mt: 2 }}>
+            <Button onClick={handleForgotPassword}>
+              <Typography variant={"body2"}>Esqueci minha senha</Typography>
+            </Button>
           </Grid>
         </Grid>
       </Container>
