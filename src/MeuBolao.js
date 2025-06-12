@@ -165,7 +165,7 @@ function MeuBolao() {
                 {boloes
                   .find((b) => b.id === bolaoAtual)
                   .data.fases.map((f) => (
-                    <MenuItem value={f.id}>{f.nome}</MenuItem>
+                    <MenuItem value={f.id} key={f.id}>{f.nome}</MenuItem>
                   ))}
               </Select>
             </Grid>
@@ -226,7 +226,7 @@ function MeuBolao() {
                           <Grid
                             item
                             xs={6}
-                            key={k}
+                            key={jo.id}
                             container
                             columns={30}
                             sx={k === j.jogos.length - 1 ? {} : { borderBottom: 1, pb: 1 }}

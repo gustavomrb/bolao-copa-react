@@ -151,9 +151,9 @@ function Classificacao() {
   };
 
   return (
-    <Grid container justifyContent={"center"} alignItems={"center"}>
+    <Grid container justifyContent={"center"} alignItems={"flex-start"} spacing={2}>
       {classificacao ? (
-        <Grid item xs={12} sm={7} container direction={"column"}>
+        <Grid item xs={12} sm={6} container direction={"column"}>
           {/* Toggle Simulação */}
           {simDisponivel && (
             <Grid item xs={12} container justifyContent={"end"} alignItems={"center"} sx={{ pt: 1 }}>
@@ -278,60 +278,60 @@ function Classificacao() {
               })}
             </Grid>
           </Card>
-          {/* Painel de Simulação */}
-          {simulacaoAtiva ? (
-            <Grid item xs={12} container direction={"column"} sx={{ mt: 3 }}>
-              <Typography variant="h6" sx={{ mb: 1 }}>
-                Jogos em aberto
-              </Typography>
-              {jogosCopa.current
-                .filter((j) => j.data.gols1 === null || j.data.gols2 === null)
-                .sort((a, b) => a.data.data.toDate() - b.data.data.toDate())
-                .map((j, idx) => {
-                  const time1Obj = selecoesCopa.current.find((s) => s.id === j.data.times[0]);
-                  const time2Obj = selecoesCopa.current.find((s) => s.id === j.data.times[1]);
-                  return (
-                    <Grid key={idx} container alignItems="center" spacing={1} sx={{ mb: 1 }}>
-                      <Grid item xs={2}>
-                        <Typography variant="body2">{
-                          `${timeStampToShortDate(j.data.data)} ${timestampToTime(j.data.data)}`
-                        }</Typography>
-                      </Grid>
-                      <Grid item xs={1}>
-                        <Typography variant="body2">{j.data.grupo}</Typography>
-                      </Grid>
-                      <Grid item xs={3}>
-                        <Typography variant="body2">{time1Obj ? time1Obj.data.nome : ""}</Typography>
-                      </Grid>
-                      <Grid item xs={1}>
-                        <TextField
-                          variant="standard"
-                          size="small"
-                          inputProps={{ inputMode: "numeric", pattern: "[0-9]", maxLength: 1, style: { textAlign: "center" } }}
-                          value={jogosSimulados[j.id]?.gols1 ?? ""}
-                          onChange={(e) => handleInputSimulacao(e, "gols1", j.id)}
-                        />
-                      </Grid>
-                      <Grid item xs={1}>
-                        <Typography variant="body2">x</Typography>
-                      </Grid>
-                      <Grid item xs={1}>
-                        <TextField
-                          variant="standard"
-                          size="small"
-                          inputProps={{ inputMode: "numeric", pattern: "[0-9]", maxLength: 1, style: { textAlign: "center" } }}
-                          value={jogosSimulados[j.id]?.gols2 ?? ""}
-                          onChange={(e) => handleInputSimulacao(e, "gols2", j.id)}
-                        />
-                      </Grid>
-                      <Grid item xs={3}>
-                        <Typography variant="body2">{time2Obj ? time2Obj.data.nome : ""}</Typography>
-                      </Grid>
-                    </Grid>
-                  );
-                })}
-            </Grid>
-          ) : null}
+        </Grid>
+      ) : null}
+      {/* Painel de Simulação colocado ao lado (ou embaixo no xs) */}
+      {simulacaoAtiva ? (
+        <Grid item xs={12} sm={6} container direction={"column"} sx={{ mt: { xs: 3, sm: 0 } }}>
+          <Typography variant="h6" sx={{ mb: 1 }}>
+            Jogos em aberto
+          </Typography>
+          {jogosCopa.current
+            .filter((j) => j.data.gols1 === null || j.data.gols2 === null)
+            .sort((a, b) => a.data.data.toDate() - b.data.data.toDate())
+            .map((j, idx) => {
+              const time1Obj = selecoesCopa.current.find((s) => s.id === j.data.times[0]);
+              const time2Obj = selecoesCopa.current.find((s) => s.id === j.data.times[1]);
+              return (
+                <Grid key={idx} container alignItems="center" spacing={1} sx={{ mb: 1 }}>
+                  <Grid item xs={2}>
+                    <Typography variant="body2">{
+                      `${timeStampToShortDate(j.data.data)} ${timestampToTime(j.data.data)}`
+                    }</Typography>
+                  </Grid>
+                  <Grid item xs={1}>
+                    <Typography variant="body2">{j.data.grupo}</Typography>
+                  </Grid>
+                  <Grid item xs={3}>
+                    <Typography variant="body2">{time1Obj ? time1Obj.data.nome : ""}</Typography>
+                  </Grid>
+                  <Grid item xs={1}>
+                    <TextField
+                      variant="standard"
+                      size="small"
+                      inputProps={{ inputMode: "numeric", pattern: "[0-9]", maxLength: 1, style: { textAlign: "center" } }}
+                      value={jogosSimulados[j.id]?.gols1 ?? ""}
+                      onChange={(e) => handleInputSimulacao(e, "gols1", j.id)}
+                    />
+                  </Grid>
+                  <Grid item xs={1}>
+                    <Typography variant="body2">x</Typography>
+                  </Grid>
+                  <Grid item xs={1}>
+                    <TextField
+                      variant="standard"
+                      size="small"
+                      inputProps={{ inputMode: "numeric", pattern: "[0-9]", maxLength: 1, style: { textAlign: "center" } }}
+                      value={jogosSimulados[j.id]?.gols2 ?? ""}
+                      onChange={(e) => handleInputSimulacao(e, "gols2", j.id)}
+                    />
+                  </Grid>
+                  <Grid item xs={3}>
+                    <Typography variant="body2">{time2Obj ? time2Obj.data.nome : ""}</Typography>
+                  </Grid>
+                </Grid>
+              );
+            })}
         </Grid>
       ) : null}
     </Grid>
