@@ -1,5 +1,5 @@
 import { useTheme } from "@emotion/react";
-import { Card, Grid, Typography, useMediaQuery, Switch, TextField } from "@mui/material";
+import { Card, Grid, Typography, useMediaQuery, Switch, TextField, Tooltip, IconButton, Box } from "@mui/material";
 import { useContext, useEffect, useMemo, useState } from "react";
 import { GlobalContext } from "./App";
 import { buscaUsuarios } from "./firebase";
@@ -8,6 +8,25 @@ import CloseIcon from "@mui/icons-material/Close";
 import { ArrowUpward, ArrowDownward, Remove } from "@mui/icons-material";
 import cloneDeep from "lodash.clonedeep";
 import { calculaPontosJogo, timeStampToShortDate, timestampToTime } from "./utils";
+import InfoOutlined from "@mui/icons-material/InfoOutlined";
+import { styled } from "@mui/material/styles";
+
+// Tooltip moderno
+const CustomTooltip = styled(({ className, ...props }) => (
+  <Tooltip {...props} arrow classes={{ popper: className }} />
+))(({ theme }) => ({
+  [`& .MuiTooltip-tooltip`]: {
+    backgroundColor: theme.palette.background.paper,
+    color: theme.palette.text.primary,
+    boxShadow: theme.shadows[3],
+    borderRadius: theme.shape.borderRadius,
+    padding: theme.spacing(1),
+    fontSize: 12
+  },
+  [`& .MuiTooltip-arrow`]: {
+    color: theme.palette.background.paper,
+  },
+}));
 
 function Classificacao() {
   const [classificacao, setClassificacao] = useState([]);
@@ -97,9 +116,9 @@ function Classificacao() {
         const pontosJogo = calculaPontosJogo(golsReal1, golsReal2, aposta.gols1, aposta.gols2);
         pontos += pontosJogo;
         if (pontosJogo === 10) {
-          cravadas += 1;
-        }
-        if (jogoCopa.data.fase > 1) {
+            cravadas += 1;
+          }
+          if (jogoCopa.data.fase > 1) {
           mataMata += pontosJogo;
         }
       }
@@ -326,8 +345,45 @@ function Classificacao() {
                       onChange={(e) => handleInputSimulacao(e, "gols2", j.id)}
                     />
                   </Grid>
-                  <Grid item xs={3}>
+                  <Grid item xs={2}>
                     <Typography variant="body2">{time2Obj ? time2Obj.data.nome : ""}</Typography>
+                  </Grid>
+                  <Grid item xs={1}>
+                    {todosUsuarios.length > 0 && resultadosUsuarios.length > 0 && (
+                      (() => {
+                        const palpites = resultadosUsuarios
+                          .map((res) => {
+                            const jogoUser = res.data.jogos[j.id];
+                            if (jogoUser && jogoUser.gols1 && jogoUser.gols2) {
+                              const nome = todosUsuarios.find((u) => u.id === res.id)?.data.nome || "";
+                              const palpite = `${jogoUser.gols1} x ${jogoUser.gols2}`;
+                              return { nome, palpite };
+                            }
+                            return null;
+                          })
+                          .filter(Boolean).sort((a, b) => a.nome.localeCompare(b.nome));
+                        if (palpites.length === 0) return null;
+                        return (
+                          <CustomTooltip
+                            title={
+                              <Box>
+                                {palpites.map((p, idxP) => (
+                                  <Typography key={idxP} variant="caption" display="block" sx={{ whiteSpace: 'nowrap' }}>
+                                    <Box component="span" sx={{ fontWeight: 'bold' }}>{p.nome}</Box>: {p.palpite}
+                                  </Typography>
+                                ))}
+                              </Box>
+                            }
+                            placement="left"
+                            arrow
+                          >
+                            <IconButton size="small">
+                              <InfoOutlined fontSize="small" />
+                            </IconButton>
+                          </CustomTooltip>
+                        );
+                      })()
+                    )}
                   </Grid>
                 </Grid>
               );
