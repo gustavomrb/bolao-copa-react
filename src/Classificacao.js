@@ -12,21 +12,21 @@ import InfoOutlined from "@mui/icons-material/InfoOutlined";
 import { styled } from "@mui/material/styles";
 
 // Tooltip moderno
-const CustomTooltip = styled(({ className, ...props }) => (
-  <Tooltip {...props} arrow classes={{ popper: className }} />
-))(({ theme }) => ({
-  [`& .MuiTooltip-tooltip`]: {
-    backgroundColor: theme.palette.background.paper,
-    color: theme.palette.text.primary,
-    boxShadow: theme.shadows[3],
-    borderRadius: theme.shape.borderRadius,
-    padding: theme.spacing(1),
-    fontSize: 12
-  },
-  [`& .MuiTooltip-arrow`]: {
-    color: theme.palette.background.paper,
-  },
-}));
+const CustomTooltip = styled(({ className, ...props }) => <Tooltip {...props} arrow classes={{ popper: className }} />)(
+  ({ theme }) => ({
+    [`& .MuiTooltip-tooltip`]: {
+      backgroundColor: theme.palette.background.paper,
+      color: theme.palette.text.primary,
+      boxShadow: theme.shadows[3],
+      borderRadius: theme.shape.borderRadius,
+      padding: theme.spacing(1),
+      fontSize: 12,
+    },
+    [`& .MuiTooltip-arrow`]: {
+      color: theme.palette.background.paper,
+    },
+  })
+);
 
 function Classificacao() {
   const [classificacao, setClassificacao] = useState([]);
@@ -106,8 +106,10 @@ function Classificacao() {
         const jogoCopa = jogosCopa.current.find((j) => j.id === jogoId);
         // Determina placar real a ser usado (override se existir)
         const override = jogosOverride ? jogosOverride[jogoId] : null;
-        const golsReal1 = override && override.gols1 !== null && override.gols2 !== null ? override.gols1 : jogoCopa.data.gols1;
-        const golsReal2 = override && override.gols1 !== null && override.gols2 !== null ? override.gols2 : jogoCopa.data.gols2;
+        const golsReal1 =
+          override && override.gols1 !== null && override.gols2 !== null ? override.gols1 : jogoCopa.data.gols1;
+        const golsReal2 =
+          override && override.gols1 !== null && override.gols2 !== null ? override.gols2 : jogoCopa.data.gols2;
 
         // Se ainda não há placar definido, ignora
         if (golsReal1 === null || golsReal2 === null) continue;
@@ -116,9 +118,9 @@ function Classificacao() {
         const pontosJogo = calculaPontosJogo(golsReal1, golsReal2, aposta.gols1, aposta.gols2);
         pontos += pontosJogo;
         if (pontosJogo === 10) {
-            cravadas += 1;
-          }
-          if (jogoCopa.data.fase > 1) {
+          cravadas += 1;
+        }
+        if (jogoCopa.data.fase > 1) {
           mataMata += pontosJogo;
         }
       }
@@ -158,9 +160,7 @@ function Classificacao() {
 
   const handleInputSimulacao = (event, propertyName, jogoId) => {
     const valor =
-      event.target.value !== "" && event.target.value.match(/[0-9]/)?.length > 0
-        ? parseInt(event.target.value)
-        : null;
+      event.target.value !== "" && event.target.value.match(/[0-9]/)?.length > 0 ? parseInt(event.target.value) : null;
     setJogosSimulados((prev) => {
       const novo = cloneDeep(prev);
       if (!novo[jogoId]) novo[jogoId] = { gols1: null, gols2: null };
@@ -240,11 +240,7 @@ function Classificacao() {
                     alignItems={"center"}
                   >
                     {simulacaoAtiva ? (
-                      <Grid
-                        item
-                        xs={1}
-                        sx={{ display: "flex", alignItems: "center", justifyContent: "center" }}
-                      >
+                      <Grid item xs={1} sx={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
                         {delta > 0 ? (
                           <ArrowUpward fontSize="small" color="success" />
                         ) : delta < 0 ? (
@@ -314,9 +310,9 @@ function Classificacao() {
               return (
                 <Grid key={idx} container alignItems="center" spacing={1} sx={{ mb: 1 }}>
                   <Grid item xs={2}>
-                    <Typography variant="body2">{
-                      `${timeStampToShortDate(j.data.data)} ${timestampToTime(j.data.data)}`
-                    }</Typography>
+                    <Typography variant="body2">{`${timeStampToShortDate(j.data.data)} ${timestampToTime(
+                      j.data.data
+                    )}`}</Typography>
                   </Grid>
                   <Grid item xs={1}>
                     <Typography variant="body2">{j.data.grupo}</Typography>
@@ -328,7 +324,12 @@ function Classificacao() {
                     <TextField
                       variant="standard"
                       size="small"
-                      inputProps={{ inputMode: "numeric", pattern: "[0-9]", maxLength: 1, style: { textAlign: "center" } }}
+                      inputProps={{
+                        inputMode: "numeric",
+                        pattern: "[0-9]",
+                        maxLength: 1,
+                        style: { textAlign: "center" },
+                      }}
                       value={jogosSimulados[j.id]?.gols1 ?? ""}
                       onChange={(e) => handleInputSimulacao(e, "gols1", j.id)}
                     />
@@ -340,7 +341,12 @@ function Classificacao() {
                     <TextField
                       variant="standard"
                       size="small"
-                      inputProps={{ inputMode: "numeric", pattern: "[0-9]", maxLength: 1, style: { textAlign: "center" } }}
+                      inputProps={{
+                        inputMode: "numeric",
+                        pattern: "[0-9]",
+                        maxLength: 1,
+                        style: { textAlign: "center" },
+                      }}
                       value={jogosSimulados[j.id]?.gols2 ?? ""}
                       onChange={(e) => handleInputSimulacao(e, "gols2", j.id)}
                     />
@@ -349,27 +355,37 @@ function Classificacao() {
                     <Typography variant="body2">{time2Obj ? time2Obj.data.nome : ""}</Typography>
                   </Grid>
                   <Grid item xs={1}>
-                    {todosUsuarios.length > 0 && resultadosUsuarios.length > 0 && (
+                    {todosUsuarios.length > 0 &&
+                      resultadosUsuarios.length > 0 &&
                       (() => {
                         const palpites = resultadosUsuarios
                           .map((res) => {
                             const jogoUser = res.data.jogos[j.id];
-                            if (jogoUser && jogoUser.gols1 && jogoUser.gols2) {
+                            if (jogoUser && jogoUser.gols1 != null && jogoUser.gols2 != null) {
                               const nome = todosUsuarios.find((u) => u.id === res.id)?.data.nome || "";
                               const palpite = `${jogoUser.gols1} x ${jogoUser.gols2}`;
                               return { nome, palpite };
                             }
                             return null;
                           })
-                          .filter(Boolean).sort((a, b) => a.nome.localeCompare(b.nome));
+                          .filter(Boolean)
+                          .sort((a, b) => a.nome.localeCompare(b.nome));
                         if (palpites.length === 0) return null;
                         return (
                           <CustomTooltip
                             title={
                               <Box>
                                 {palpites.map((p, idxP) => (
-                                  <Typography key={idxP} variant="caption" display="block" sx={{ whiteSpace: 'nowrap' }}>
-                                    <Box component="span" sx={{ fontWeight: 'bold' }}>{p.nome}</Box>: {p.palpite}
+                                  <Typography
+                                    key={idxP}
+                                    variant="caption"
+                                    display="block"
+                                    sx={{ whiteSpace: "nowrap" }}
+                                  >
+                                    <Box component="span" sx={{ fontWeight: "bold" }}>
+                                      {p.nome}
+                                    </Box>
+                                    : {p.palpite}
                                   </Typography>
                                 ))}
                               </Box>
@@ -382,8 +398,7 @@ function Classificacao() {
                             </IconButton>
                           </CustomTooltip>
                         );
-                      })()
-                    )}
+                      })()}
                   </Grid>
                 </Grid>
               );
