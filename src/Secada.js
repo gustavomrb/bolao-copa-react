@@ -1,5 +1,5 @@
 import { Card, Grid, IconButton, MenuItem, Select, Typography, useMediaQuery } from "@mui/material";
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useState, useMemo } from "react";
 import { buscaUsuarios } from "./firebase";
 import { useTheme } from "@emotion/react";
 import { CalendarMonth, SortByAlphaRounded } from "@mui/icons-material";
@@ -28,6 +28,17 @@ function Secada() {
 
   const { jogosCopa, resultadosUsuarios, selecoesCopa, todosUsuarios, setTodosUsuarios, boloes, bolaoAtual } =
     useContext(GlobalContext);
+
+  const primeiroJogoFase = useMemo(() => {
+    if (!jogosCopa.current || jogosCopa.current.length === 0) return null;
+    const jogosFase = jogosCopa.current.filter((j) => j.data.fase === faseAtual);
+    if (jogosFase.length === 0) return null;
+    return jogosFase.reduce((min, jogo) =>
+      jogo.data.data.toDate() < min.data.data.toDate() ? jogo : min
+    );
+  }, [jogosCopa.current, faseAtual]);
+
+  const faseJaComecou = primeiroJogoFase && new Date() > primeiroJogoFase.data.data.toDate();
 
   const theme = useTheme();
   const isXs = useMediaQuery(theme.breakpoints.only("xs"));
@@ -117,7 +128,7 @@ function Secada() {
 
   return (
     <Grid container justifyContent={"center"} alignItems={"center"}>
-      {jogosShow && selecoesCopa.current && resultadosUsuarios && usuarioAtual && jogosShow[0].jogos[0].data.data.toDate() < new Date() ? (
+      {jogosShow && selecoesCopa.current && resultadosUsuarios && usuarioAtual && faseJaComecou ? (
         <Grid item xs={12} sm={10} container direction={"column"}>
           <Grid item container xs={12} justifyContent={"end"} sx={{ pt: 1 }}>
             <Grid item xs={4} sm={2} pb={1}>

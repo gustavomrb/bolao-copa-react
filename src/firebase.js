@@ -62,15 +62,18 @@ const criarResultados = async (jogosCopa, user) => {
   return resultadosUsuario;
 };
 
-const salvarResultados = async (resultados, user, bolao, dataPrimeiroJogo) => {
+const salvarResultados = async (resultados, user, bolao, dataPrimeiroJogoFase) => {
   const dataAgora = new Date();
-  if (dataAgora.getTime() < dataPrimeiroJogo.getTime()) {
-    await updateDoc(doc(database, "resultadosUsuariosBoloes", bolao), {
-      [`usuarios.${user.uid}`]: resultados,
-    });
-    return true;
+
+  // Se a fase já começou, não pode salvar de jeito nenhum
+  if (dataAgora.getTime() >= dataPrimeiroJogoFase.getTime()) {
+    return false;
   }
-  return false;
+
+  await updateDoc(doc(database, "resultadosUsuariosBoloes", bolao), {
+    [`usuarios.${user.uid}`]: resultados,
+  });
+  return true;
 };
 
 const atualizaPontosUsuario = async (idBolao, userId, idJogo, pontos) => {

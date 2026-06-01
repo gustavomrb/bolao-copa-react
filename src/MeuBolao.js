@@ -12,7 +12,7 @@ import {
   Typography,
   useMediaQuery,
 } from "@mui/material";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { salvarResultados } from "./firebase";
 import { useTheme } from "@emotion/react";
 import { CalendarMonth, SortByAlphaRounded } from "@mui/icons-material";
@@ -33,6 +33,25 @@ function MeuBolao() {
   const carregouInformacoesIniciais = useRef(false);
 
   const { user, jogosCopa, resultadosUsuarios, selecoesCopa, bolaoAtual, boloes } = useContext(GlobalContext);
+
+  const primeiroJogoCampeonato = useMemo(() => {
+    if (!jogosCopa.current || jogosCopa.current.length === 0) return null;
+    return jogosCopa.current.reduce((min, jogo) =>
+      jogo.data.data.toDate() < min.data.data.toDate() ? jogo : min
+    );
+  }, [jogosCopa.current]);
+
+  const primeiroJogoFase = useMemo(() => {
+    if (!jogosCopa.current || jogosCopa.current.length === 0) return null;
+    const jogosFase = jogosCopa.current.filter((j) => j.data.fase === faseAtual);
+    if (jogosFase.length === 0) return null;
+    return jogosFase.reduce((min, jogo) =>
+      jogo.data.data.toDate() < min.data.data.toDate() ? jogo : min
+    );
+  }, [jogosCopa.current, faseAtual]);
+
+  const campeonatoJaComecou = primeiroJogoCampeonato && new Date() > primeiroJogoCampeonato.data.data.toDate();
+  const faseJaComecou = primeiroJogoFase && new Date() > primeiroJogoFase.data.data.toDate();
 
   const theme = useTheme();
   const isXs = useMediaQuery(theme.breakpoints.only("xs"));
@@ -262,7 +281,7 @@ function MeuBolao() {
                                 sx={{ typography: "body2" }}
                                 onChange={(e) => handleInputChange(e, "gols1", jo.id)}
                                 //disabled={jo.data.fase === 6 ? false : true}
-                                disabled={new Date() > jogosShow[0].jogos[0].data.data.toDate()}
+                                disabled={faseJaComecou}
                               />
                             </Grid>
                             <Grid item xs={1}>
@@ -283,7 +302,7 @@ function MeuBolao() {
                                 }}
                                 onChange={(e) => handleInputChange(e, "gols2", jo.id)}
                                 //disabled={jo.data.fase === 6 ? false : true}
-                                disabled={new Date() > jogosShow[0].jogos[0].data.data.toDate()}
+                                disabled={faseJaComecou}
                               />
                             </Grid>
                             <Grid item xs={6.5} sm={5}>
@@ -332,7 +351,7 @@ function MeuBolao() {
                   return o.jogador === v.jogador;
                 }}
                 defaultValue={{ jogador: "", selecao: "" }}
-                disabled={new Date() > jogosShow[0].jogos[0].data.data.toDate()}
+                disabled={campeonatoJaComecou}
               />
             </Grid>
             <Grid item xs={6} sm={4}>
@@ -344,7 +363,7 @@ function MeuBolao() {
                 onChange={(e, nv) => setValueCampeao(nv)}
                 inputValue={resultados.campeao}
                 onInputChange={(e, nv) => handleArtilheiroCampeao(nv, "campeao")}
-                disabled={new Date() > jogosShow[0].jogos[0].data.data.toDate()}
+                disabled={campeonatoJaComecou}
               />
             </Grid>
           </Grid>
@@ -352,7 +371,12 @@ function MeuBolao() {
             <Button
               variant="outlined"
               onClick={() => {
-                salvarResultados(resultados, user, bolaoAtual, jogosShow[0].jogos[0].data.data.toDate()).then(
+                 salvarResultados(
+                  resultados,
+                  user,
+                  bolaoAtual,
+                  primeiroJogoFase ? primeiroJogoFase.data.data.toDate() : new Date(),
+                ).then(
                   (salvou) => {
                     if (salvou) {
                       setResultSalvo(true);
@@ -363,7 +387,7 @@ function MeuBolao() {
                 );
                 organizarPorGrupo();
               }}
-              disabled={new Date() > jogosShow[0].jogos[0].data.data.toDate()}
+              disabled={faseJaComecou}
             >
               Enviar Palpites
             </Button>
