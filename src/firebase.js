@@ -87,6 +87,13 @@ const updateJogoCopa = async (idBolao, idJogo, idData) => {
   await updateDoc(doc(database, "jogosBolao", idBolao), { [`jogos.${idJogo}`]: idData });
 };
 
+const updateArtilheiroCampeao = async (idBolao, artilheiro, campeao) => {
+  await updateDoc(doc(database, "jogosBolao", idBolao), {
+    artilheiro: artilheiro,
+    campeao: campeao,
+  });
+};
+
 const criarUsuario = (email, password) => {
   return createUserWithEmailAndPassword(auth, email, password);
 };
@@ -136,6 +143,7 @@ export {
   buscaUsuarios,
   buscaUsuario,
   updateJogoCopa,
+  updateArtilheiroCampeao,
   atualizaPontosUsuario,
   atualizaPago,
   resetPassword,

@@ -1,10 +1,11 @@
-import { Button, Card, Grid, IconButton, MenuItem, Select, TextField, Typography, useMediaQuery } from "@mui/material";
+import { Autocomplete, Button, Card, Grid, IconButton, MenuItem, Select, TextField, Typography, useMediaQuery } from "@mui/material";
 import { useContext, useEffect, useState } from "react";
-import { atualizaPontosUsuario, buscaUsuarios, updateJogoCopa } from "./firebase";
+import { atualizaPontosUsuario, buscaUsuarios, updateJogoCopa, updateArtilheiroCampeao } from "./firebase";
 import { useTheme } from "@emotion/react";
 import { CalendarMonth, SortByAlphaRounded } from "@mui/icons-material";
 import { GlobalContext } from "./App";
 import cloneDeep from "lodash.clonedeep";
+import { getConvocados } from "./utils";
 
 const pegaData = (timestamp) => {
   const date = timestamp.toDate();
@@ -28,9 +29,24 @@ function Resultados() {
   const [sortValue, setSortValue] = useState("g");
   const [userBanco, setUserBanco] = useState(null);
   const [faseAtual, setFaseAtual] = useState(1);
+  const [valueArtilheiro, setValueArtilheiro] = useState({ jogador: "", selecao: "" });
+  const [valueCampeao, setValueCampeao] = useState("");
+  const [adminArtilheiro, setAdminArtilheiro] = useState("");
+  const [adminCampeao, setAdminCampeao] = useState("");
+  const [convocados, setConvocados] = useState([]);
 
-  const { user, jogosCopa, resultadosUsuarios, selecoesCopa, todosUsuarios, setTodosUsuarios, bolaoAtual, boloes } =
-    useContext(GlobalContext);
+  const {
+    user,
+    jogosCopa,
+    resultadosUsuarios,
+    selecoesCopa,
+    todosUsuarios,
+    setTodosUsuarios,
+    bolaoAtual,
+    boloes,
+    artilheiroAtual,
+    campeaoAtual,
+  } = useContext(GlobalContext);
 
   const theme = useTheme();
   const isXs = useMediaQuery(theme.breakpoints.only("xs"));
@@ -127,6 +143,7 @@ function Resultados() {
         }
       }
     }
+    updateArtilheiroCampeao(bolaoAtual, adminArtilheiro, adminCampeao);
     setJogosCopaOld(jogosCopaNew);
     setJogosCopaNew(cloneDeep(jogosCopaNew));
   };
@@ -150,6 +167,28 @@ function Resultados() {
       setUserBanco(todosUsuarios.find((u) => u.id === user.uid).data);
     }
   }, [jogosCopaNew, user, todosUsuarios]);
+
+  useEffect(() => {
+    if (selecoesCopa.current && selecoesCopa.current.length > 0) {
+      const convocadosJson = getConvocados(selecoesCopa.current);
+      setConvocados(convocadosJson);
+
+      const foundArtilheiro = convocadosJson.find((c) => c.jogador === artilheiroAtual);
+      setValueArtilheiro(foundArtilheiro || { jogador: "", selecao: "" });
+      setAdminArtilheiro(artilheiroAtual || "");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selecoesCopa.current, artilheiroAtual]);
+
+  useEffect(() => {
+    if (campeaoAtual) {
+      setValueCampeao(campeaoAtual);
+      setAdminCampeao(campeaoAtual);
+    } else {
+      setValueCampeao("");
+      setAdminCampeao("");
+    }
+  }, [campeaoAtual]);
 
   const handleInputChange = (event, propertyName, idJogo) => {
     const jogo = jogosCopaNew.find((j) => {
@@ -317,6 +356,37 @@ function Resultados() {
               </Grid>
             );
           })}
+          <Grid item container xs={12} sx={{ pt: 1, pb: 2 }} spacing={2}>
+            <Grid item xs={6} sm={4}>
+              <Autocomplete
+                options={convocados}
+                groupBy={(option) => option.selecao}
+                getOptionLabel={(option) => option.jogador}
+                renderInput={(params) => <TextField {...params} label="Artilheiro Oficial" />}
+                value={valueArtilheiro}
+                onChange={(e, nv) => {
+                  setValueArtilheiro(nv ? nv : { jogador: "", selecao: "" });
+                  setAdminArtilheiro(nv ? nv.jogador : "");
+                }}
+                inputValue={adminArtilheiro}
+                onInputChange={(e, nv) => setAdminArtilheiro(nv)}
+                isOptionEqualToValue={(o, v) => o.jogador === v.jogador}
+                disabled={!userBanco.isAdmin}
+              />
+            </Grid>
+            <Grid item xs={6} sm={4}>
+              <Autocomplete
+                options={[...selecoesCopa.current.map((s) => s.data.nome), ""]}
+                getOptionLabel={(option) => option}
+                renderInput={(params) => <TextField {...params} label="Campeão Oficial" />}
+                value={valueCampeao}
+                onChange={(e, nv) => setValueCampeao(nv || "")}
+                inputValue={adminCampeao}
+                onInputChange={(e, nv) => setAdminCampeao(nv)}
+                disabled={!userBanco.isAdmin}
+              />
+            </Grid>
+          </Grid>
           <Grid item xs sx={{ p: 3 }} alignSelf={"end"} display={userBanco.isAdmin}>
             <Button
               variant="outlined"
