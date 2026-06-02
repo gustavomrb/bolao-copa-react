@@ -60,10 +60,11 @@ function App() {
   }, []);
 
   useEffect(() => {
+    let unsubscribe;
     if (user) {
       if (boloes.length === 0) {
         console.log("buscouBoloes");
-        onSnapshot(collection(database, "boloes"), (snapshot) => {
+        unsubscribe = onSnapshot(collection(database, "boloes"), (snapshot) => {
           setBoloes(snapshot.docs.map((j) => ({ id: j.id, data: j.data() })));
         });
       }
@@ -77,9 +78,16 @@ function App() {
         }
       });
     }
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
   }, [user]);
 
   useEffect(() => {
+    let unsubSelecoes;
+    let unsubJogos;
+    let unsubResultados;
+
     if (bolaoAtual && bolaoAtual !== "") {
       console.log(location.pathname);
       if(location.pathname !== "/") {
@@ -90,40 +98,55 @@ function App() {
       selecoesCopa.current = [];
       setArtilheiroAtual("");
       setCampeaoAtual("");
-      console.log("buscouJogos");
 
       console.log("buscouSelecoes");
-      onSnapshot(doc(database, "equipesBolao", bolaoAtual), (snapshot) => {
+      unsubSelecoes = onSnapshot(doc(database, "equipesBolao", bolaoAtual), (snapshot) => {
         const equipesArr = [];
-        const mapaEquipes = snapshot.data().equipes;
-        for (let idUser in mapaEquipes) {
-          equipesArr.push({ id: idUser, data: mapaEquipes[idUser] });
+        const data = snapshot.data();
+        if (data && data.equipes) {
+          const mapaEquipes = data.equipes;
+          for (let idUser in mapaEquipes) {
+            equipesArr.push({ id: idUser, data: mapaEquipes[idUser] });
+          }
         }
         selecoesCopa.current = equipesArr;
       });
 
-      onSnapshot(doc(database, "jogosBolao", bolaoAtual), (snapshot) => {
+      console.log("buscouJogos");
+      unsubJogos = onSnapshot(doc(database, "jogosBolao", bolaoAtual), (snapshot) => {
         const jogosCopaArr = [];
-        const mapaJogosCopa = snapshot.data().jogos;
-        for (let idJogoCopa in mapaJogosCopa) {
-          jogosCopaArr.push({ id: idJogoCopa, data: mapaJogosCopa[idJogoCopa] });
+        const data = snapshot.data();
+        if (data && data.jogos) {
+          const mapaJogosCopa = data.jogos;
+          for (let idJogoCopa in mapaJogosCopa) {
+            jogosCopaArr.push({ id: idJogoCopa, data: mapaJogosCopa[idJogoCopa] });
+          }
+          jogosCopa.current = jogosCopaArr;
+          setArtilheiroAtual(data.artilheiro || "");
+          setCampeaoAtual(data.campeao || "");
         }
-        jogosCopa.current = jogosCopaArr;
-        setArtilheiroAtual(snapshot.data().artilheiro);
-        setCampeaoAtual(snapshot.data().campeao);
       });
 
       console.log("buscouResultados");
-      onSnapshot(doc(database, "resultadosUsuariosBoloes", bolaoAtual), (snapshot) => {
+      unsubResultados = onSnapshot(doc(database, "resultadosUsuariosBoloes", bolaoAtual), (snapshot) => {
         const resUsuArr = [];
-        const mapaResUsu = snapshot.data().usuarios;
-        for (let idUser in mapaResUsu) {
-          resUsuArr.push({ id: idUser, data: mapaResUsu[idUser] });
+        const data = snapshot.data();
+        if (data && data.usuarios) {
+          const mapaResUsu = data.usuarios;
+          for (let idUser in mapaResUsu) {
+            resUsuArr.push({ id: idUser, data: mapaResUsu[idUser] });
+          }
         }
         setResultadosUsuarios(resUsuArr);
         navigate("../home");
       });
     }
+
+    return () => {
+      if (unsubSelecoes) unsubSelecoes();
+      if (unsubJogos) unsubJogos();
+      if (unsubResultados) unsubResultados();
+    };
   }, [bolaoAtual]);
 
   const menuLateral = (

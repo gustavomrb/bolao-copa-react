@@ -48,10 +48,8 @@ function Situacao() {
       }
 
       if (
-        !usuario.data.artilheiro === null ||
-        usuario.data.artilheiro === "" ||
-        !usuario.data.campeao === null ||
-        usuario.data.campeao === ""
+        !usuario.data.artilheiro ||
+        !usuario.data.campeao
       ) {
         artilheiroCampeao = false;
       }

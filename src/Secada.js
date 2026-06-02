@@ -4,21 +4,7 @@ import { buscaUsuarios } from "./firebase";
 import { useTheme } from "@emotion/react";
 import { CalendarMonth, SortByAlphaRounded } from "@mui/icons-material";
 import { GlobalContext } from "./App";
-
-const pegaData = (timestamp) => {
-  const date = timestamp.toDate();
-  return date.toLocaleDateString("pt-BR");
-};
-
-const pegaDataCurta = (timestamp) => {
-  const date = timestamp.toDate().toLocaleDateString("pt-BR").split("/");
-  return `${date[0]}/${date[1]}`;
-};
-
-const pegaHorario = (timestamp) => {
-  const date = timestamp.toDate().toLocaleTimeString("pt-BR").split(":");
-  return `${date[0]}:${date[1]}`;
-};
+import { timestampToDate, timeStampToShortDate, timestampToTime } from "./utils";
 
 function Secada() {
   const [jogosShow, setJogosShow] = useState([]);
@@ -211,11 +197,11 @@ function Secada() {
                           >
                             <Grid item xs={4} sm={5} display={sortValue === "d" ? "none" : "block"}>
                               <Typography variant="body2">
-                                {isXs ? pegaDataCurta(jo.data.data) : pegaData(jo.data.data)}
+                                {isXs ? timeStampToShortDate(jo.data.data) : timestampToDate(jo.data.data)}
                               </Typography>
                             </Grid>
                             <Grid item xs={3}>
-                              <Typography variant="body2">{pegaHorario(jo.data.data)}</Typography>
+                              <Typography variant="body2">{timestampToTime(jo.data.data)}</Typography>
                             </Grid>
                             <Grid item xs={1} sm={3} display={sortValue === "g" ? "none" : "block"}>
                               <Typography variant="body2">{jo.data.grupo}</Typography>
