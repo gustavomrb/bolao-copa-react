@@ -91,7 +91,6 @@ function Resultados() {
         jogoCopaNew.data.gols1 !== undefined &&
         (jogoCopaOld.data.gols1 !== jogoCopaNew.data.gols1 || jogoCopaOld.data.gols2 !== jogoCopaNew.data.gols2)
       ) {
-        console.log("entrou");
         updateJogoCopa(bolaoAtual, jogoCopaNew.id, jogoCopaNew.data);
         for (let resUsuario of resultadosUsuarios) {
           if (resUsuario.data.jogos[jogoCopaNew.id]) {

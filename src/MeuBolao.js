@@ -90,7 +90,11 @@ function MeuBolao() {
   };
 
   useEffect(() => {
-    if (resultadosUsuarios.length >= 0) {
+    carregouInformacoesIniciais.current = false;
+  }, [bolaoAtual]);
+
+  useEffect(() => {
+    if (resultadosUsuarios.length >= 0 && !carregouInformacoesIniciais.current) {
       let res = resultadosUsuarios.find((r) => r.id === user.uid);
       if (res && res.data.jogos) {
         res = checaNovosResultadosUsuario(res.data);
@@ -105,7 +109,6 @@ function MeuBolao() {
         organizarPorGrupo();
       }
 
-      console.log(selecoesCopa.current);
       if (selecoesCopa.current.length > 0) {
         let convocadosJson = getConvocados(selecoesCopa.current);
         setConvocados(convocadosJson);

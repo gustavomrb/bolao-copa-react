@@ -51,7 +51,6 @@ function Secada() {
   };
 
   const organizarPorGrupo = () => {
-    console.log("entrou organizar");
     const organizadosGrupo = [];
     const grupos = faseAtual === 1 ? [...new Set(jogosCopa.current.map((item) => item.data.grupo))].sort() : ["A"];
     for (let grupo of grupos) {

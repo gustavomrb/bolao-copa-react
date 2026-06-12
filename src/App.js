@@ -63,7 +63,6 @@ function App() {
     let unsubscribe;
     if (user) {
       if (boloes.length === 0) {
-        console.log("buscouBoloes");
         unsubscribe = onSnapshot(collection(database, "boloes"), (snapshot) => {
           setBoloes(snapshot.docs.map((j) => ({ id: j.id, data: j.data() })));
         });
@@ -89,7 +88,7 @@ function App() {
     let unsubResultados;
 
     if (bolaoAtual && bolaoAtual !== "") {
-      console.log(location.pathname);
+      let firstLoad = true;
       if(location.pathname !== "/") {
         navigate("/");
       }
@@ -99,7 +98,6 @@ function App() {
       setArtilheiroAtual("");
       setCampeaoAtual("");
 
-      console.log("buscouSelecoes");
       unsubSelecoes = onSnapshot(doc(database, "equipesBolao", bolaoAtual), (snapshot) => {
         const equipesArr = [];
         const data = snapshot.data();
@@ -112,7 +110,6 @@ function App() {
         selecoesCopa.current = equipesArr;
       });
 
-      console.log("buscouJogos");
       unsubJogos = onSnapshot(doc(database, "jogosBolao", bolaoAtual), (snapshot) => {
         const jogosCopaArr = [];
         const data = snapshot.data();
@@ -127,7 +124,6 @@ function App() {
         }
       });
 
-      console.log("buscouResultados");
       unsubResultados = onSnapshot(doc(database, "resultadosUsuariosBoloes", bolaoAtual), (snapshot) => {
         const resUsuArr = [];
         const data = snapshot.data();
@@ -138,7 +134,10 @@ function App() {
           }
         }
         setResultadosUsuarios(resUsuArr);
-        navigate("../home");
+        if (firstLoad) {
+          navigate("../home");
+          firstLoad = false;
+        }
       });
     }
 

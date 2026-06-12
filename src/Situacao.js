@@ -68,7 +68,6 @@ function Situacao() {
 
   const atualizarPagamento = (usuario) => {
     atualizaPago(bolaoAtual, usuario).then(() => {
-      console.log(usuario);
       usuario.pago = !usuario.pago;
     })
     setSituacoes(situacoes)
