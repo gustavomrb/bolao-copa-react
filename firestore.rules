@@ -1,0 +1,147 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get("isAdmin", false) == true;
+    }
+
+    function phase(bolaoId, faseId) {
+      return get(/databases/$(database)/documents/boloes/$(bolaoId)/fases/$(faseId)).data;
+    }
+
+    function bolaoExists(bolaoId) {
+      return exists(/databases/$(database)/documents/boloes/$(bolaoId));
+    }
+
+    function validPrediction() {
+      return request.resource.data.keys().hasOnly(["jogos", "schemaVersion"])
+        && request.resource.data.schemaVersion == 3
+        && request.resource.data.jogos is map;
+    }
+
+    function validGeneralPrediction() {
+      return request.resource.data.keys().hasOnly(["campeao", "artilheiro", "schemaVersion"])
+        && request.resource.data.schemaVersion == 3
+        && request.resource.data.campeao is string
+        && request.resource.data.artilheiro is string;
+    }
+
+    match /boloes/{docId} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if isAdmin();
+
+      match /fases/{faseId} {
+        allow read: if isSignedIn() && bolaoExists(docId);
+        allow write: if isAdmin() && bolaoExists(docId);
+
+        match /palpites/{userId} {
+          allow get: if isSignedIn() && bolaoExists(docId) && (
+            request.auth.uid == userId
+            || isAdmin()
+            || request.time >= phase(docId, faseId).revelaEm
+          );
+          allow list: if isSignedIn() && bolaoExists(docId) && (
+            isAdmin()
+            || request.time >= phase(docId, faseId).revelaEm
+          );
+          allow create, update: if isSignedIn()
+            && bolaoExists(docId)
+            && request.auth.uid == userId
+            && request.time < phase(docId, faseId).fechaEm
+            && validPrediction();
+          allow delete: if isAdmin() && bolaoExists(docId);
+        }
+
+        match /pontuacoes/{userId} {
+          allow get: if isSignedIn() && bolaoExists(docId) && (
+            request.auth.uid == userId
+            || isAdmin()
+            || request.time >= phase(docId, faseId).revelaEm
+          );
+          allow list: if isSignedIn() && bolaoExists(docId) && (
+            isAdmin()
+            || request.time >= phase(docId, faseId).revelaEm
+          );
+          allow write: if isAdmin() && bolaoExists(docId);
+        }
+      }
+
+      match /palpitesGerais/{userId} {
+        allow get: if isSignedIn() && bolaoExists(docId) && (
+          request.auth.uid == userId
+          || isAdmin()
+          || request.time >=
+            get(/databases/$(database)/documents/boloes/$(docId)).data.palpitesGeraisRevelaEm
+        );
+        allow list: if isSignedIn() && bolaoExists(docId) && (
+          isAdmin()
+          || request.time >=
+            get(/databases/$(database)/documents/boloes/$(docId)).data.palpitesGeraisRevelaEm
+        );
+        allow create, update: if isSignedIn()
+          && bolaoExists(docId)
+          && request.auth.uid == userId
+          && request.time <
+            get(/databases/$(database)/documents/boloes/$(docId)).data.palpitesGeraisFechaEm
+          && validGeneralPrediction();
+        allow delete: if isAdmin() && bolaoExists(docId);
+      }
+
+      match /participantes/{userId} {
+        allow read: if isSignedIn() && bolaoExists(docId);
+        allow create: if bolaoExists(docId) && (isAdmin() || (
+          isSignedIn()
+          && request.auth.uid == userId
+          && request.resource.data.keys().hasOnly(["envios", "schemaVersion"])
+          && request.resource.data.schemaVersion == 3
+        ));
+        allow update: if bolaoExists(docId) && (isAdmin() || (
+          isSignedIn()
+          && request.auth.uid == userId
+          && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(["envios", "schemaVersion"])
+          && request.resource.data.schemaVersion == 3
+        ));
+        allow delete: if isAdmin() && bolaoExists(docId);
+      }
+    }
+
+    match /equipesBolao/{docId} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /jogosBolao/{docId} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /resultadosUsuariosBoloes/{docId} {
+      allow read: if isAdmin();
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /users/{userId} {
+      allow read: if isSignedIn();
+      allow create: if isAdmin() || (
+        isSignedIn()
+        && request.auth.uid == userId
+        && request.resource.data.keys().hasOnly([
+          "email",
+          "nome",
+          "resultadosFase1",
+          "artilheiroCampeao",
+          "pago"
+        ])
+      );
+      allow update, delete: if isAdmin();
+    }
+  }
+}

@@ -3,7 +3,7 @@ import ReactDOM from "react-dom/client";
 import "./index.css";
 import App from "./App";
 import reportWebVitals from "./reportWebVitals";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import MeuBolao from "./MeuBolao";
 import LoginPage from "./LoginPage";
 import SignUpPage from "./SignUpPage";
@@ -22,6 +22,7 @@ root.render(
         <Route path="/signup" element={<SignUpPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/" element={<App />}>
+          <Route index element={<Navigate to="/home" replace />} />
           <Route path="/home" element={<MeuBolao />} />
           <Route path="/situacao" element={<Situacao />} />
           <Route path="/regras" element={<Regras />} />

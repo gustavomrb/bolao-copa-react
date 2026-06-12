@@ -30,16 +30,28 @@ function MeuBolao() {
   const [valueCampeao, setValueCampeao] = useState("");
   const [faseAtual, setFaseAtual] = useState(1);
   const [convocados, setConvocados] = useState([]);
+  const [bolaoExibido, setBolaoExibido] = useState("");
   const carregouInformacoesIniciais = useRef(false);
 
-  const { user, jogosCopa, resultadosUsuarios, selecoesCopa, bolaoAtual, boloes } = useContext(GlobalContext);
+  const {
+    user,
+    jogosCopa,
+    resultadosUsuarios,
+    selecoesCopa,
+    bolaoAtual,
+    boloes,
+    dadosBolaoVersion,
+  } = useContext(GlobalContext);
+  const faseConfigurada = Number(
+    boloes.find((bolao) => bolao.id === bolaoAtual)?.data?.faseAtual,
+  ) || 1;
 
   const primeiroJogoCampeonato = useMemo(() => {
     if (!jogosCopa.current || jogosCopa.current.length === 0) return null;
     return jogosCopa.current.reduce((min, jogo) =>
       jogo.data.data.toDate() < min.data.data.toDate() ? jogo : min
     );
-  }, [jogosCopa.current]);
+  }, [dadosBolaoVersion, jogosCopa]);
 
   const primeiroJogoFase = useMemo(() => {
     if (!jogosCopa.current || jogosCopa.current.length === 0) return null;
@@ -48,7 +60,7 @@ function MeuBolao() {
     return jogosFase.reduce((min, jogo) =>
       jogo.data.data.toDate() < min.data.data.toDate() ? jogo : min
     );
-  }, [jogosCopa.current, faseAtual]);
+  }, [dadosBolaoVersion, faseAtual, jogosCopa]);
 
   const campeonatoJaComecou = primeiroJogoCampeonato && new Date() > primeiroJogoCampeonato.data.data.toDate();
   const faseJaComecou = primeiroJogoFase && new Date() > primeiroJogoFase.data.data.toDate();
@@ -91,13 +103,26 @@ function MeuBolao() {
 
   useEffect(() => {
     carregouInformacoesIniciais.current = false;
-  }, [bolaoAtual]);
+    setResultados([]);
+    setJogosShow([]);
+    setSortValue("g");
+    setValueArtilheiro("");
+    setValueCampeao("");
+    setConvocados([]);
+    setResultSalvo(false);
+    setResultNaoSalvo(false);
+    setBolaoExibido("");
+    setFaseAtual(faseConfigurada);
+  }, [bolaoAtual, faseConfigurada]);
 
   useEffect(() => {
-    if (resultadosUsuarios.length >= 0 && !carregouInformacoesIniciais.current) {
+    if (Array.isArray(resultadosUsuarios) && !carregouInformacoesIniciais.current) {
       let res = resultadosUsuarios.find((r) => r.id === user.uid);
       if (res && res.data.jogos) {
-        res = checaNovosResultadosUsuario(res.data);
+        res = checaNovosResultadosUsuario({
+          ...res.data,
+          jogos: { ...res.data.jogos },
+        });
       } else {
         res = criarNovoResultadoUsuario();
       }
@@ -112,11 +137,37 @@ function MeuBolao() {
       if (selecoesCopa.current.length > 0) {
         let convocadosJson = getConvocados(selecoesCopa.current);
         setConvocados(convocadosJson);
-        setValueArtilheiro(convocadosJson.find((c) => c.jogador === resultados.artilheiro) || {jogador:"", selecao:""});
+        setValueArtilheiro(convocadosJson.find((c) => c.jogador === res.artilheiro) || {jogador:"", selecao:""});
       }
       carregouInformacoesIniciais.current = true;
+      setBolaoExibido(bolaoAtual);
     }
-  }, [resultadosUsuarios]);
+  }, [bolaoAtual, resultadosUsuarios]);
+
+  useEffect(() => {
+    if (!carregouInformacoesIniciais.current || bolaoExibido !== bolaoAtual) return;
+
+    setResultados((current) => {
+      if (!current.jogos) return current;
+
+      let changed = false;
+      const jogos = { ...current.jogos };
+      for (const jogo of jogosCopa.current) {
+        if (!jogos[jogo.id]) {
+          jogos[jogo.id] = { gols1: "", gols2: "", pontos: "" };
+          changed = true;
+        }
+      }
+
+      return changed ? { ...current, jogos } : current;
+    });
+
+    organizarPorGrupo();
+
+    if (selecoesCopa.current.length > 0) {
+      setConvocados(getConvocados(selecoesCopa.current));
+    }
+  }, [bolaoAtual, bolaoExibido, dadosBolaoVersion]);
 
   useEffect(() => {
     setValueArtilheiro(convocados.find((c) => c.jogador === resultados.artilheiro) || {jogador:"", selecao:""});
@@ -148,7 +199,7 @@ function MeuBolao() {
     let ptsGeral = 0;
     const jogosGrupo = jogosCopa.current.filter((j) => j.data.grupo === grupo && j.data.fase === faseAtual);
     for (let jogo of jogosGrupo) {
-      const ptsJogo = resultados.jogos[jogo.id].pontos;
+      const ptsJogo = resultados.jogos?.[jogo.id]?.pontos ?? "";
       if (ptsJogo !== "") {
         ptsGeral += ptsJogo;
       }
@@ -160,7 +211,7 @@ function MeuBolao() {
     let ptsGeral = 0;
     const jogosGrupo = jogosCopa.current.filter((j) => j.data.data.toDate().toLocaleDateString("pt-BR") === data);
     for (let jogo of jogosGrupo) {
-      const ptsJogo = resultados.jogos[jogo.id].pontos;
+      const ptsJogo = resultados.jogos?.[jogo.id]?.pontos ?? "";
       if (ptsJogo !== "") {
         ptsGeral += ptsJogo;
       }
@@ -170,7 +221,7 @@ function MeuBolao() {
 
   return (
     <Grid container justifyContent={"center"} alignItems={"center"}>
-      {carregouInformacoesIniciais.current ? (
+      {carregouInformacoesIniciais.current && bolaoExibido === bolaoAtual ? (
         <Grid item xs={12} sm={10} container direction={"column"}>
           <Grid item container xs={12} justifyContent={"end"} sx={{ pt: 1 }}>
             <Grid item xs={4} sm={2} pb={1}>
@@ -241,7 +292,11 @@ function MeuBolao() {
                   <Card elevation={3} sx={{ pt: 1.5, pb: 1, borderRadius: 4 }}>
                     <Grid container direction={"column"} spacing={2}>
                       {j.jogos.map((jo, k) => {
-                        const resultado = resultados.jogos[jo.id];
+                        const resultado = resultados.jogos[jo.id] || {
+                          gols1: "",
+                          gols2: "",
+                          pontos: "",
+                        };
                         const time1 = selecoesCopa.current.find((s) => s.id === jo.data.times[0]);
                         const time2 = selecoesCopa.current.find((s) => s.id === jo.data.times[1]);
                         return (
@@ -266,7 +321,7 @@ function MeuBolao() {
                               <Typography variant="body2">{jo.data.grupo}</Typography>
                             </Grid>
                             <Grid item xs={6.5} sm={5}>
-                              <Typography variant="body2">{time1.data.nome}</Typography>
+                              <Typography variant="body2">{time1?.data?.nome || "-"}</Typography>
                             </Grid>
                             <Grid item xs={1}>
                               <TextField
@@ -309,7 +364,7 @@ function MeuBolao() {
                               />
                             </Grid>
                             <Grid item xs={6.5} sm={5}>
-                              <Typography variant="body2">{time2.data.nome}</Typography>
+                              <Typography variant="body2">{time2?.data?.nome || "-"}</Typography>
                             </Grid>
                             <Grid item xs={3}>
                               <Typography variant="body2">
@@ -374,12 +429,14 @@ function MeuBolao() {
             <Button
               variant="outlined"
               onClick={() => {
-                 salvarResultados(
+                 salvarResultados({
                   resultados,
                   user,
-                  bolaoAtual,
-                  primeiroJogoFase ? primeiroJogoFase.data.data.toDate() : new Date(),
-                ).then(
+                  bolaoId: bolaoAtual,
+                  faseId: faseAtual,
+                  jogosFase: jogosCopa.current.filter((j) => j.data.fase === faseAtual),
+                  salvarPalpitesGerais: !campeonatoJaComecou,
+                }).then(
                   (salvou) => {
                     if (salvou) {
                       setResultSalvo(true);

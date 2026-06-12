@@ -2,6 +2,8 @@
 
 # dependencies
 /node_modules
+/migration/node_modules
+firestore-debug.log
 /.pnp
 .pnp.js
 package-lock.json
@@ -25,3 +27,7 @@ yarn-debug.log*
 yarn-error.log*
 
 /.firebase
+
+# local Firebase Admin credentials
+**/service-account*.json
+**/*serviceAccount*.json

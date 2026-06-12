@@ -1,6 +1,6 @@
 import { useTheme } from "@emotion/react";
 import { Card, Grid, Typography, useMediaQuery, Switch, TextField, Tooltip, IconButton, Box } from "@mui/material";
-import { useContext, useEffect, useMemo, useState } from "react";
+import { useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { GlobalContext } from "./App";
 import { buscaUsuarios } from "./firebase";
 import DoneIcon from "@mui/icons-material/Done";
@@ -42,7 +42,12 @@ function Classificacao() {
     artilheiroAtual,
     campeaoAtual,
     selecoesCopa,
+    dadosBolaoVersion,
   } = useContext(GlobalContext);
+  const resultadosDisponiveis = useMemo(
+    () => resultadosUsuarios || [],
+    [resultadosUsuarios],
+  );
 
   const theme = useTheme();
   const isXs = useMediaQuery(theme.breakpoints.only("xs"));
@@ -78,25 +83,12 @@ function Classificacao() {
         setTodosUsuarios(v.docs.map((u) => ({ id: u.id, data: u.data() })));
       });
     }
-  }, []);
-
-  useEffect(() => {
-    if (todosUsuarios.length > 0) {
-      geraClassificacao();
-    }
-  }, [todosUsuarios]);
+  }, [setTodosUsuarios, todosUsuarios.length]);
 
   // Recalcula classificação quando há alteração em resultados simulados
-  useEffect(() => {
-    if (simulacaoAtiva) {
-      geraClassificacao(jogosSimulados);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [jogosSimulados]);
-
-  const geraClassificacao = (jogosOverride) => {
+  const geraClassificacao = useCallback((jogosOverride) => {
     const classificacao = [];
-    for (let usuario of resultadosUsuarios) {
+    for (let usuario of resultadosDisponiveis) {
       let pontos = 0;
       let cravadas = 0;
       let mataMata = 0;
@@ -104,6 +96,8 @@ function Classificacao() {
       let campeao = 0;
       for (let jogoId in usuario.data.jogos) {
         const jogoCopa = jogosCopa.current.find((j) => j.id === jogoId);
+        if (!jogoCopa) continue;
+
         // Determina placar real a ser usado (override se existir)
         const override = jogosOverride ? jogosOverride[jogoId] : null;
         const golsReal1 =
@@ -115,7 +109,9 @@ function Classificacao() {
         if (golsReal1 === null || golsReal2 === null) continue;
 
         const aposta = usuario.data.jogos[jogoId];
-        const pontosJogo = calculaPontosJogo(golsReal1, golsReal2, aposta.gols1, aposta.gols2);
+        const pontosJogo = jogosOverride
+          ? calculaPontosJogo(golsReal1, golsReal2, aposta.gols1, aposta.gols2)
+          : Number(aposta.pontos) || 0;
         pontos += pontosJogo;
         if (pontosJogo === 10) {
           cravadas += 1;
@@ -136,7 +132,7 @@ function Classificacao() {
       }
 
       classificacao.push({
-        nome: todosUsuarios.find((u) => u.id === usuario.id).data.nome,
+        nome: todosUsuarios.find((u) => u.id === usuario.id)?.data?.nome || usuario.id,
         pontos: pontos,
         cravadas: cravadas,
         mataMata: mataMata,
@@ -156,7 +152,23 @@ function Classificacao() {
         : b.pontos - a.pontos
     );
     setClassificacao(classificacao);
-  };
+  }, [artilheiroAtual, campeaoAtual, jogosCopa, resultadosDisponiveis, todosUsuarios]);
+
+  useEffect(() => {
+    if (resultadosUsuarios === null || todosUsuarios.length === 0) {
+      setClassificacao([]);
+      return;
+    }
+
+    geraClassificacao(simulacaoAtiva ? jogosSimulados : undefined);
+  }, [
+    dadosBolaoVersion,
+    geraClassificacao,
+    jogosSimulados,
+    resultadosUsuarios,
+    simulacaoAtiva,
+    todosUsuarios.length,
+  ]);
 
   const handleInputSimulacao = (event, propertyName, jogoId) => {
     const valor =
@@ -356,9 +368,9 @@ function Classificacao() {
                   </Grid>
                   <Grid item xs={1}>
                     {todosUsuarios.length > 0 &&
-                      resultadosUsuarios.length > 0 &&
+                      resultadosDisponiveis.length > 0 &&
                       (() => {
-                        const palpites = resultadosUsuarios
+                        const palpites = resultadosDisponiveis
                           .map((res) => {
                             const jogoUser = res.data.jogos[j.id];
                             if (jogoUser && jogoUser.gols1 != null && jogoUser.gols2 != null) {

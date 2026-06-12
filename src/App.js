@@ -28,6 +28,7 @@ import { useAuthState } from "react-firebase-hooks/auth";
 import React, { createContext, useEffect, useRef } from "react";
 import { useState } from "react";
 import { collection, onSnapshot, doc } from "firebase/firestore";
+import { subscribeResultadosBolao } from "./resultadosRepository";
 
 const darkTheme = createTheme({
   palette: {
@@ -41,43 +42,58 @@ function App() {
   const [user] = useAuthState(auth);
   const navigate = useNavigate();
   const [menuAberto, setMenuAberto] = useState(false);
-  const [resultadosUsuarios, setResultadosUsuarios] = useState();
+  const [resultadosUsuarios, setResultadosUsuarios] = useState(null);
   const [todosUsuarios, setTodosUsuarios] = useState([]);
   const [boloes, setBoloes] = useState([]);
   const [bolaoAtual, setBolaoAtual] = useState("");
   const [campeaoAtual, setCampeaoAtual] = useState("");
   const [artilheiroAtual, setArtilheiroAtual] = useState("");
   const [isAdmin, setIsAdmin] = useState(false);
+  const [adminStatusReady, setAdminStatusReady] = useState(false);
+  const [dadosBolaoVersion, setDadosBolaoVersion] = useState(0);
 
   const selecoesCopa = useRef([]);
   let jogosCopa = useRef([]);
+  const bolaoCarregado = useRef("");
   let location = useLocation();
 
   useEffect(() => {
     if (!user) {
       navigate("../login");
     }
-  }, []);
+  }, [navigate, user]);
 
   useEffect(() => {
     let unsubscribe;
-    if (user) {
-      if (boloes.length === 0) {
-        unsubscribe = onSnapshot(collection(database, "boloes"), (snapshot) => {
-          setBoloes(snapshot.docs.map((j) => ({ id: j.id, data: j.data() })));
-        });
-      }
+    let active = true;
 
-      buscaUsuario(user.uid).then((res) => {
-        const userDb = res.data();
-        if (userDb && userDb.isAdmin) {
-          setIsAdmin(true);
-        } else {
-          setIsAdmin(false);
-        }
+    if (user) {
+      setAdminStatusReady(false);
+
+      unsubscribe = onSnapshot(collection(database, "boloes"), (snapshot) => {
+        setBoloes(snapshot.docs.map((j) => ({ id: j.id, data: j.data() })));
       });
+
+      buscaUsuario(user.uid)
+        .then((res) => {
+          if (!active) return;
+          setIsAdmin(res.data()?.isAdmin === true);
+        })
+        .catch((error) => {
+          if (!active) return;
+          console.error("Erro ao verificar permissao administrativa", error);
+          setIsAdmin(false);
+        })
+        .finally(() => {
+          if (active) setAdminStatusReady(true);
+        });
+    } else {
+      setIsAdmin(false);
+      setAdminStatusReady(false);
     }
+
     return () => {
+      active = false;
       if (unsubscribe) unsubscribe();
     };
   }, [user]);
@@ -86,19 +102,23 @@ function App() {
     let unsubSelecoes;
     let unsubJogos;
     let unsubResultados;
+    let active = true;
 
-    if (bolaoAtual && bolaoAtual !== "") {
-      let firstLoad = true;
-      if(location.pathname !== "/") {
-        navigate("/");
+    if (bolaoAtual && bolaoAtual !== "" && user) {
+      setResultadosUsuarios(null);
+
+      if (bolaoCarregado.current !== bolaoAtual) {
+        jogosCopa.current = [];
+        selecoesCopa.current = [];
+        setArtilheiroAtual("");
+        setCampeaoAtual("");
+        bolaoCarregado.current = bolaoAtual;
+        setDadosBolaoVersion((version) => version + 1);
       }
-      jogosCopa.current = [];
-      setResultadosUsuarios([]);
-      selecoesCopa.current = [];
-      setArtilheiroAtual("");
-      setCampeaoAtual("");
 
       unsubSelecoes = onSnapshot(doc(database, "equipesBolao", bolaoAtual), (snapshot) => {
+        if (!active) return;
+
         const equipesArr = [];
         const data = snapshot.data();
         if (data && data.equipes) {
@@ -108,9 +128,12 @@ function App() {
           }
         }
         selecoesCopa.current = equipesArr;
+        setDadosBolaoVersion((version) => version + 1);
       });
 
       unsubJogos = onSnapshot(doc(database, "jogosBolao", bolaoAtual), (snapshot) => {
+        if (!active) return;
+
         const jogosCopaArr = [];
         const data = snapshot.data();
         if (data && data.jogos) {
@@ -121,32 +144,40 @@ function App() {
           jogosCopa.current = jogosCopaArr;
           setArtilheiroAtual(data.artilheiro || "");
           setCampeaoAtual(data.campeao || "");
+          setDadosBolaoVersion((version) => version + 1);
         }
       });
 
-      unsubResultados = onSnapshot(doc(database, "resultadosUsuariosBoloes", bolaoAtual), (snapshot) => {
-        const resUsuArr = [];
-        const data = snapshot.data();
-        if (data && data.usuarios) {
-          const mapaResUsu = data.usuarios;
-          for (let idUser in mapaResUsu) {
-            resUsuArr.push({ id: idUser, data: mapaResUsu[idUser] });
-          }
-        }
-        setResultadosUsuarios(resUsuArr);
-        if (firstLoad) {
-          navigate("../home");
-          firstLoad = false;
-        }
+      const bolao = boloes.find((item) => item.id === bolaoAtual);
+      const resultsScope = location.pathname === "/situacao"
+        ? "participants-only"
+        : ["/classificacao", "/secada"].includes(location.pathname)
+          ? "started-phases"
+          : location.pathname === "/resultados"
+            ? isAdmin ? "scoring" : "started-scores"
+            : "current-user";
+      unsubResultados = subscribeResultadosBolao({
+        bolaoId: bolaoAtual,
+        bolao: bolao ? bolao.data : {},
+        userId: user.uid,
+        scope: resultsScope,
+        onData: (resultados) => {
+          if (active) setResultadosUsuarios(resultados);
+        },
+        onReady: () => {},
+        onError: (error) => {
+          if (active) console.error("Erro ao carregar resultados do bolao", error);
+        },
       });
     }
 
     return () => {
+      active = false;
       if (unsubSelecoes) unsubSelecoes();
       if (unsubJogos) unsubJogos();
       if (unsubResultados) unsubResultados();
     };
-  }, [bolaoAtual]);
+  }, [bolaoAtual, boloes, isAdmin, location.pathname, user]);
 
   const menuLateral = (
     <React.Fragment>
@@ -159,7 +190,11 @@ function App() {
           label="Bolão"
           value={bolaoAtual}
           onChange={(e) => {
-            setBolaoAtual(e.target.value);
+            const novoBolaoId = e.target.value;
+            setResultadosUsuarios(null);
+            setBolaoAtual(novoBolaoId);
+            setMenuAberto(false);
+            navigate("/home");
           }}
         >
           {boloes.sort((a, b) => b.data.anoTorneio - a.data.anoTorneio).map((b, i) => (
@@ -299,6 +334,9 @@ function App() {
             bolaoAtual,
             artilheiroAtual,
             campeaoAtual,
+            isAdmin,
+            adminStatusReady,
+            dadosBolaoVersion,
           }}
         >
           <Grid container height={"100vh"}>

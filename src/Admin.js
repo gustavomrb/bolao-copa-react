@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
+import { Navigate } from 'react-router-dom';
 import { collection, doc, updateDoc, deleteField, Timestamp, addDoc, deleteDoc, setDoc } from 'firebase/firestore';
-import { database } from './firebase';
+import { database, sincronizaPrazosBolao } from './firebase';
 import { GlobalContext } from './App';
 import {
   Box,
@@ -319,12 +320,16 @@ const AdminJogos = () => {
 
     const jogoRef = doc(database, 'jogosBolao', bolaoAtual);
 
+    let nextJogos;
     if (editando) {
       await updateDoc(jogoRef, { [`jogos.${editando.id}`]: jogoData });
+      nextJogos = jogos.map((jogo) => jogo.id === editando.id ? { id: editando.id, ...jogoData } : jogo);
     } else {
       const newJogoId = doc(collection(database, '_')).id;
       await updateDoc(jogoRef, { [`jogos.${newJogoId}`]: jogoData });
+      nextJogos = [...jogos, { id: newJogoId, ...jogoData }];
     }
+    await sincronizaPrazosBolao(bolaoAtual, nextJogos, fases);
 
     handleCancel();
   };
@@ -408,6 +413,11 @@ const AdminJogos = () => {
         try {
             const jogoRef = doc(database, 'jogosBolao', bolaoAtual);
             await updateDoc(jogoRef, updates);
+            const novosJogos = Object.entries(updates).map(([path, jogo]) => ({
+              id: path.replace('jogos.', ''),
+              ...jogo,
+            }));
+            await sincronizaPrazosBolao(bolaoAtual, [...jogos, ...novosJogos], fases);
             alert('Jogos adicionados com sucesso!');
             setBulkGamesText('');
         } catch (err) {
@@ -442,6 +452,11 @@ const AdminJogos = () => {
     if (bolaoAtual) {
       const jogoRef = doc(database, 'jogosBolao', bolaoAtual);
       await updateDoc(jogoRef, { [`jogos.${id}`]: deleteField() });
+      await sincronizaPrazosBolao(
+        bolaoAtual,
+        jogos.filter((jogo) => jogo.id !== id),
+        fases,
+      );
     }
   };
 
@@ -566,7 +581,7 @@ const AdminJogos = () => {
 const initialBolaoState = { nomeTorneio: '', anoTorneio: '', fases: [], faseAtual: '' };
 
 const AdminBoloes = () => {
-  const { boloes } = useContext(GlobalContext);
+  const { boloes, jogosCopa, bolaoAtual } = useContext(GlobalContext);
   const [formData, setFormData] = useState(initialBolaoState);
   const [editando, setEditando] = useState(null);
   const [novaFaseNome, setNovaFaseNome] = useState('');
@@ -590,6 +605,10 @@ const AdminBoloes = () => {
 
     if (editando) {
       await updateDoc(doc(database, 'boloes', editando.id), bolaoData);
+      if (editando.id === bolaoAtual) {
+        const jogosAtuais = jogosCopa.current.map((jogo) => ({ id: jogo.id, ...jogo.data }));
+        await sincronizaPrazosBolao(editando.id, jogosAtuais, fases || []);
+      }
     } else {
       const newBolaoRef = await addDoc(collection(database, 'boloes'), { ...bolaoData, fases: [], faseAtual: 1 });
       await setDoc(doc(database, 'equipesBolao', newBolaoRef.id), { equipes: {} });
@@ -742,6 +761,10 @@ const AdminBoloes = () => {
 
 const Admin = () => {
   const [activeTab, setActiveTab] = useState(0);
+  const { isAdmin, adminStatusReady } = useContext(GlobalContext);
+
+  if (!adminStatusReady) return null;
+  if (!isAdmin) return <Navigate to="/home" replace />;
 
   const renderContent = (tabIndex) => {
     switch (tabIndex) {
@@ -775,4 +798,4 @@ const Admin = () => {
   );
 };
 
-export default Admin; 
+export default Admin;

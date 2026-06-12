@@ -11,6 +11,7 @@ import {
   query,
   setDoc,
   updateDoc,
+  writeBatch,
 } from "firebase/firestore";
 
 const firebaseConfig = {
@@ -45,42 +46,77 @@ const buscaUsuario = async (id) => {
   return getDoc(doc(database, "users", id));
 };
 
-const buscarResultados = async (idBolao) => {
-  return await getDoc(doc(database, "resultadosUsuario", idBolao));
-};
-
-const criarResultados = async (jogosCopa, user) => {
-  const resultadosUsuario = {
-    campeao: "",
-    artilheiro: "",
-    jogos: {},
-  };
-  for (let jogo of jogosCopa) {
-    resultadosUsuario.jogos[jogo.id] = { gols1: "", gols2: "", pontos: "" };
-  }
-  await setDoc(doc(database, "resultadosUsuario", user.uid), resultadosUsuario);
-  return resultadosUsuario;
-};
-
-const salvarResultados = async (resultados, user, bolao, dataPrimeiroJogoFase) => {
-  const dataAgora = new Date();
-
-  // Se a fase já começou, não pode salvar de jeito nenhum
-  if (dataAgora.getTime() >= dataPrimeiroJogoFase.getTime()) {
-    return false;
+const salvarResultados = async ({
+  resultados,
+  user,
+  bolaoId,
+  faseId,
+  jogosFase,
+  salvarPalpitesGerais,
+}) => {
+  const jogos = {};
+  for (const jogo of jogosFase) {
+    const resultado = resultados.jogos[jogo.id] || {};
+    jogos[jogo.id] = {
+      gols1: resultado.gols1 ?? "",
+      gols2: resultado.gols2 ?? "",
+    };
   }
 
-  await updateDoc(doc(database, "resultadosUsuariosBoloes", bolao), {
-    [`usuarios.${user.uid}`]: resultados,
-  });
-  return true;
+  const faseCompleta = Object.values(jogos).every(
+    (jogo) => jogo.gols1 !== "" && jogo.gols2 !== "",
+  );
+  const geraisCompletos = Boolean(resultados.campeao && resultados.artilheiro);
+  const batch = writeBatch(database);
+
+  batch.set(
+    doc(database, "boloes", bolaoId, "fases", String(faseId), "palpites", user.uid),
+    { jogos, schemaVersion: 3 },
+  );
+
+  if (salvarPalpitesGerais) {
+    batch.set(
+      doc(database, "boloes", bolaoId, "palpitesGerais", user.uid),
+      {
+        campeao: resultados.campeao || "",
+        artilheiro: resultados.artilheiro || "",
+        schemaVersion: 3,
+      },
+    );
+  }
+
+  batch.set(
+    doc(database, "boloes", bolaoId, "participantes", user.uid),
+    {
+      envios: {
+        fases: { [String(faseId)]: faseCompleta },
+        ...(salvarPalpitesGerais ? { palpitesGerais: geraisCompletos } : {}),
+      },
+      schemaVersion: 3,
+    },
+    { merge: true },
+  );
+
+  try {
+    await batch.commit();
+    return true;
+  } catch (error) {
+    if (error && error.code === "permission-denied") return false;
+    throw error;
+  }
 };
 
-const atualizaPontosUsuario = async (idBolao, userId, idJogo, pontos) => {
-  const property = `usuarios.${userId}.jogos.${idJogo}.pontos`;
-  await updateDoc(doc(database, "resultadosUsuariosBoloes", idBolao), {
-    [property]: pontos,
-  });
+const atualizaPontosUsuario = async (idBolao, faseId, userId, idJogo, pontos) => {
+  await setDoc(
+    doc(database, "boloes", idBolao, "fases", String(faseId), "pontuacoes", userId),
+    {
+      jogos: {
+        [idJogo]: { pontos },
+      },
+      schemaVersion: 3,
+    },
+    { merge: true },
+  );
 };
 
 const updateJogoCopa = async (idBolao, idJogo, idData) => {
@@ -117,9 +153,59 @@ const signOutUser = () => {
 };
 
 const atualizaPago = async (idBolao, usuario) => {
-  await updateDoc(doc(database, "resultadosUsuariosBoloes", idBolao), {
-    [`usuarios.${usuario.id}.pago`]: !usuario.pago,
-  });
+  await setDoc(
+    doc(database, "boloes", idBolao, "participantes", usuario.id),
+    {
+      pago: !usuario.pago,
+      schemaVersion: 3,
+    },
+    { merge: true },
+  );
+};
+
+const sincronizaPrazosBolao = async (idBolao, jogos, fases = []) => {
+  const firstGameByPhase = new Map();
+
+  for (const jogo of jogos) {
+    const phaseId = String(jogo.fase);
+    const current = firstGameByPhase.get(phaseId);
+    if (!current || jogo.data.toMillis() < current.toMillis()) {
+      firstGameByPhase.set(phaseId, jogo.data);
+    }
+  }
+
+  if (firstGameByPhase.size === 0) return;
+
+  const phaseNames = new Map(fases.map((fase) => [String(fase.id), fase.nome || ""]));
+  const firstGame = [...firstGameByPhase.values()].reduce((earliest, date) =>
+    date.toMillis() < earliest.toMillis() ? date : earliest
+  );
+  const batch = writeBatch(database);
+
+  batch.set(
+    doc(database, "boloes", idBolao),
+    {
+      palpitesGeraisFechaEm: firstGame,
+      palpitesGeraisRevelaEm: firstGame,
+    },
+    { merge: true },
+  );
+
+  for (const [phaseId, date] of firstGameByPhase.entries()) {
+    batch.set(
+      doc(database, "boloes", idBolao, "fases", phaseId),
+      {
+        nome: phaseNames.get(phaseId) || "",
+        fechaEm: date,
+        revelaEm: date,
+        primeiroJogoEm: date,
+        schemaVersion: 3,
+      },
+      { merge: true },
+    );
+  }
+
+  await batch.commit();
 };
 
 const resetPassword = (email) => {
@@ -136,8 +222,6 @@ export {
   database,
   buscaEquipesBolao,
   buscaJogosBolao,
-  criarResultados,
-  buscarResultados,
   salvarResultados,
   criarUserBanco,
   buscaUsuarios,
@@ -146,5 +230,6 @@ export {
   updateArtilheiroCampeao,
   atualizaPontosUsuario,
   atualizaPago,
+  sincronizaPrazosBolao,
   resetPassword,
 };

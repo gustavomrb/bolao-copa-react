@@ -1,15 +1,18 @@
 import { Button, Card, Grid, Typography } from "@mui/material";
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useMemo } from "react";
 import { buscaUsuarios, atualizaPago } from "./firebase";
 import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
 import HighlightOffRoundedIcon from "@mui/icons-material/HighlightOffRounded";
 import { GlobalContext } from "./App";
 
+const EMPTY_PARTICIPANTS = [];
+
 function Situacao() {
-  const { user, todosUsuarios, setTodosUsuarios, resultadosUsuarios, jogosCopa, boloes, bolaoAtual } =
+  const { user, todosUsuarios, setTodosUsuarios, resultadosUsuarios, boloes, bolaoAtual } =
     useContext(GlobalContext);
-  const [situacoes, setSituacoes] = useState([]);
-  const [userBanco, setUserBanco] = useState(null);
+  const participantes = resultadosUsuarios || EMPTY_PARTICIPANTS;
+  const userBanco = todosUsuarios.find((u) => u.id === user.uid)?.data;
+  const faseAtual = boloes.find((b) => b.id === bolaoAtual)?.data.faseAtual;
 
   useEffect(() => {
     if (todosUsuarios.length === 0) {
@@ -19,63 +22,28 @@ function Situacao() {
     }
   }, []);
 
-  useEffect(() => {
-    if (todosUsuarios.length > 0) {
-      setUserBanco(todosUsuarios.find((u) => u.id === user.uid).data);
-      geraSituacao();
-    }
-  }, [todosUsuarios]);
+  const situacoes = useMemo(() => {
+    return participantes.map((usuario) => {
+      const envios = usuario.data.envios || { fases: {}, palpitesGerais: false };
+      const nome = todosUsuarios.find((u) => u.id === usuario.id)?.data.nome || usuario.id;
 
-  const geraSituacao = () => {
-    const situacoes = [];
-    for (let usuario of resultadosUsuarios) {
-      let resultados = true;
-      let artilheiroCampeao = true;
-      let faseAtual = boloes.find((b) => b.id === bolaoAtual).data.faseAtual;
-      let jogosFaseAtual = jogosCopa.current.filter((j) => j.data.fase === faseAtual);
-
-      for (let jogoFaseAtual of jogosFaseAtual) {
-        if (
-          !usuario.data.jogos[jogoFaseAtual.id] ||
-          usuario.data.jogos[jogoFaseAtual.id].gols1 === null ||
-          usuario.data.jogos[jogoFaseAtual.id].gols1 === "" ||
-          usuario.data.jogos[jogoFaseAtual.id].gols2 === null ||
-          usuario.data.jogos[jogoFaseAtual.id].gols2 === ""
-        ) {
-          resultados = false;
-          break;
-        }
-      }
-
-      if (
-        !usuario.data.artilheiro ||
-        !usuario.data.campeao
-      ) {
-        artilheiroCampeao = false;
-      }
-
-      situacoes.push({
+      return {
         id: usuario.id,
-        nome: todosUsuarios.find((u) => u.id === usuario.id).data.nome,
-        resultados: resultados,
-        artilheiroCampeao: artilheiroCampeao,
+        nome,
+        resultados: envios.fases && envios.fases[String(faseAtual)] === true,
+        artilheiroCampeao: envios.palpitesGerais === true,
         pago: usuario.data.pago === undefined ? false : usuario.data.pago,
-      });
-    }
+      };
+    });
+  }, [faseAtual, participantes, todosUsuarios]);
 
-    setSituacoes(situacoes);
+  const atualizarPagamento = async (usuario) => {
+    await atualizaPago(bolaoAtual, usuario);
   };
-
-  const atualizarPagamento = (usuario) => {
-    atualizaPago(bolaoAtual, usuario).then(() => {
-      usuario.pago = !usuario.pago;
-    })
-    setSituacoes(situacoes)
-  }
 
   return (
     <Grid container justifyContent={"center"} alignItems={"center"} mt={5}>
-      {todosUsuarios ? (
+      {todosUsuarios.length > 0 && userBanco ? (
         <Grid item xs={12} sm={6} container direction={"column"}>
           <Grid item xs={3} container sx={{ pt: 1, pb: 1 }} justifyContent={"space-evenly"}>
             <Grid item xs={3}>

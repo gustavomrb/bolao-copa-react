@@ -6,6 +6,8 @@ import { CalendarMonth, SortByAlphaRounded } from "@mui/icons-material";
 import { GlobalContext } from "./App";
 import { timestampToDate, timeStampToShortDate, timestampToTime } from "./utils";
 
+const EMPTY_RESULTS = [];
+
 function Secada() {
   const [jogosShow, setJogosShow] = useState([]);
   const [sortValue, setSortValue] = useState("g");
@@ -14,6 +16,8 @@ function Secada() {
 
   const { jogosCopa, resultadosUsuarios, selecoesCopa, todosUsuarios, setTodosUsuarios, boloes, bolaoAtual } =
     useContext(GlobalContext);
+  const bolaoSelecionado = boloes.find((b) => b.id === bolaoAtual);
+  const resultadosDisponiveis = resultadosUsuarios || EMPTY_RESULTS;
 
   const primeiroJogoFase = useMemo(() => {
     if (!jogosCopa.current || jogosCopa.current.length === 0) return null;
@@ -24,7 +28,9 @@ function Secada() {
     );
   }, [jogosCopa.current, faseAtual]);
 
-  const faseJaComecou = primeiroJogoFase && new Date() > primeiroJogoFase.data.data.toDate();
+  const faseJaComecou = primeiroJogoFase
+    && Date.now() >= primeiroJogoFase.data.data.toMillis() + 5000;
+  const resultadosUsuarioAtual = resultadosDisponiveis.find((r) => r.id === usuarioAtual);
 
   const theme = useTheme();
   const isXs = useMediaQuery(theme.breakpoints.only("xs"));
@@ -65,6 +71,12 @@ function Secada() {
   };
 
   useEffect(() => {
+    if (bolaoSelecionado && bolaoSelecionado.data.faseAtual) {
+      setFaseAtual(bolaoSelecionado.data.faseAtual);
+    }
+  }, [bolaoAtual, bolaoSelecionado]);
+
+  useEffect(() => {
     if (jogosShow.length === 0 && jogosCopa.current.length > 0) {
       organizarPorGrupo();
     }
@@ -72,14 +84,22 @@ function Secada() {
     if (todosUsuarios.length === 0) {
       buscaUsuarios().then((v) => {
         setTodosUsuarios(v.docs.map((u) => ({ id: u.id, data: u.data() })));
-        setUsuarioAtual(resultadosUsuarios[0].id);
+        if (resultadosDisponiveis.length > 0) {
+          setUsuarioAtual(resultadosDisponiveis[0].id);
+        }
       });
     }
 
-    if (!usuarioAtual && todosUsuarios.length > 0) {
-      setUsuarioAtual(resultadosUsuarios[0].id);
+    if (!usuarioAtual && todosUsuarios.length > 0 && resultadosDisponiveis.length > 0) {
+      setUsuarioAtual(resultadosDisponiveis[0].id);
     }
-  }, [jogosCopa.current, todosUsuarios]);
+  }, [jogosCopa.current, resultadosDisponiveis, todosUsuarios, usuarioAtual]);
+
+  useEffect(() => {
+    if (usuarioAtual && !resultadosDisponiveis.some((resultado) => resultado.id === usuarioAtual)) {
+      setUsuarioAtual(resultadosDisponiveis[0]?.id || "");
+    }
+  }, [resultadosDisponiveis, usuarioAtual]);
 
   useEffect(() => {
     organizarPorGrupo();
@@ -87,11 +107,12 @@ function Secada() {
 
   const calculaPontosGrupo = (grupo) => {
     let ptsGeral = 0;
-    const resultados = resultadosUsuarios.find((r) => r.id === usuarioAtual).data;
+    const resultados = resultadosUsuarioAtual?.data;
+    if (!resultados) return ptsGeral;
     const jogosGrupo = jogosCopa.current.filter((j) => j.data.grupo === grupo && j.data.fase === faseAtual);
     for (let jogo of jogosGrupo) {
-      const ptsJogo = resultados.jogos[jogo.id].pontos;
-      if (ptsJogo !== "") {
+      const ptsJogo = resultados.jogos[jogo.id]?.pontos;
+      if (ptsJogo !== "" && ptsJogo !== undefined) {
         ptsGeral += ptsJogo;
       }
     }
@@ -100,11 +121,14 @@ function Secada() {
 
   const calculaPontosData = (data) => {
     let ptsGeral = 0;
-    const resultados = resultadosUsuarios.find((r) => r.id === usuarioAtual).data;
-    const jogosGrupo = jogosCopa.current.filter((j) => j.data.data.toDate().toLocaleDateString("pt-BR") === data);
+    const resultados = resultadosUsuarioAtual?.data;
+    if (!resultados) return ptsGeral;
+    const jogosGrupo = jogosCopa.current.filter(
+      (j) => j.data.fase === faseAtual && j.data.data.toDate().toLocaleDateString("pt-BR") === data,
+    );
     for (let jogo of jogosGrupo) {
-      const ptsJogo = resultados.jogos[jogo.id].pontos;
-      if (ptsJogo !== "") {
+      const ptsJogo = resultados.jogos[jogo.id]?.pontos;
+      if (ptsJogo !== "" && ptsJogo !== undefined) {
         ptsGeral += ptsJogo;
       }
     }
@@ -113,13 +137,12 @@ function Secada() {
 
   return (
     <Grid container justifyContent={"center"} alignItems={"center"}>
-      {jogosShow && selecoesCopa.current && resultadosUsuarios && usuarioAtual && faseJaComecou ? (
+      {bolaoSelecionado && jogosShow && selecoesCopa.current && resultadosUsuarioAtual && faseJaComecou ? (
         <Grid item xs={12} sm={10} container direction={"column"}>
           <Grid item container xs={12} justifyContent={"end"} sx={{ pt: 1 }}>
             <Grid item xs={4} sm={2} pb={1}>
               <Select value={faseAtual} fullWidth onChange={(e) => {setJogosShow(null); setFaseAtual(e.target.value)}} size={"small"}>
-                {boloes
-                  .find((b) => b.id === bolaoAtual)
+                {bolaoSelecionado
                   .data.fases.map((f) => (
                     <MenuItem value={f.id}>{f.nome}</MenuItem>
                   ))}
@@ -127,9 +150,9 @@ function Secada() {
             </Grid>
             <Grid item xs={4} sm={2} mr={"auto"} pb={1}>
               <Select value={usuarioAtual} fullWidth onChange={(e) => setUsuarioAtual(e.target.value)} size={"small"}>
-                {resultadosUsuarios.map((u, i) => (
+                {resultadosDisponiveis.map((u, i) => (
                   <MenuItem value={u.id} key={i}>
-                    {todosUsuarios.find((t) => t.id === u.id).data.nome}
+                    {todosUsuarios.find((t) => t.id === u.id)?.data.nome || u.id}
                   </MenuItem>
                 ))}
               </Select>
@@ -181,7 +204,7 @@ function Secada() {
                   <Card elevation={3} sx={{ pt: 1.5, pb: 1, borderRadius: 4 }}>
                     <Grid container direction={"column"} spacing={2}>
                       {j.jogos.map((jo, k) => {
-                        const resultado = resultadosUsuarios.find((r) => r.id === usuarioAtual).data.jogos[jo.id];
+                        const resultado = resultadosUsuarioAtual.data.jogos[jo.id] || {};
                         const time1 = selecoesCopa.current.find((s) => s.id === jo.data.times[0]);
                         const time2 = selecoesCopa.current.find((s) => s.id === jo.data.times[1]);
                         return (
@@ -209,13 +232,17 @@ function Secada() {
                               <Typography variant="body2">{time1.data.nome}</Typography>
                             </Grid>
                             <Grid item xs={1}>
-                              <Typography>{resultado.gols1 !== "" ? resultado.gols1 : "-"}</Typography>
+                              <Typography>
+                                {resultado.gols1 === "" || resultado.gols1 === undefined ? "-" : resultado.gols1}
+                              </Typography>
                             </Grid>
                             <Grid item xs={1}>
                               <Typography>x</Typography>
                             </Grid>
                             <Grid item xs={1}>
-                              <Typography>{resultado.gols2 !== "" ? resultado.gols2 : "-"}</Typography>
+                              <Typography>
+                                {resultado.gols2 === "" || resultado.gols2 === undefined ? "-" : resultado.gols2}
+                              </Typography>
                             </Grid>
                             <Grid item xs={6.5} sm={5}>
                               <Typography variant="body2">{time2.data.nome}</Typography>
@@ -229,7 +256,7 @@ function Secada() {
                             </Grid>
                             <Grid item xs={3} sm={3}>
                               <Typography variant="body2">
-                                {resultado.pontos === "" ? "-" : resultado.pontos}
+                                {resultado.pontos === "" || resultado.pontos === undefined ? "-" : resultado.pontos}
                               </Typography>
                             </Grid>
                           </Grid>
@@ -251,17 +278,21 @@ function Secada() {
           <Grid item container direction={"column"} xs={12} sx={{ pt: 1, pb: 2 }} spacing={2}>
             <Grid item xs={3} sm={3}>
               <Typography>{`Artilheiro: ${
-                resultadosUsuarios.find((r) => r.id === usuarioAtual).data.artilheiro
+                resultadosUsuarioAtual.data.artilheiro
               }`}</Typography>
             </Grid>
             <Grid item xs={3} sm={3}>
               <Typography>{`Campeão: ${
-                resultadosUsuarios.find((r) => r.id === usuarioAtual).data.campeao
+                resultadosUsuarioAtual.data.campeao
               }`}</Typography>
             </Grid>
           </Grid>
         </Grid>
-      ) : (<Typography color={"red"}>{"Não pode ver ainda arrombado!"}</Typography>)}
+      ) : (
+        <Typography color={"text.secondary"}>
+          Os palpites desta fase ainda não foram revelados.
+        </Typography>
+      )}
     </Grid>
   );
 }

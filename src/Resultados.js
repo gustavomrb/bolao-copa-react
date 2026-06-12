@@ -1,18 +1,17 @@
 import { Autocomplete, Button, Card, Grid, IconButton, MenuItem, Select, TextField, Typography, useMediaQuery } from "@mui/material";
 import { useContext, useEffect, useState } from "react";
-import { atualizaPontosUsuario, buscaUsuarios, updateJogoCopa, updateArtilheiroCampeao } from "./firebase";
+import { atualizaPontosUsuario, updateJogoCopa, updateArtilheiroCampeao } from "./firebase";
 import { useTheme } from "@emotion/react";
 import { CalendarMonth, SortByAlphaRounded } from "@mui/icons-material";
 import { GlobalContext } from "./App";
 import cloneDeep from "lodash.clonedeep";
-import { getConvocados, timestampToDate, timeStampToShortDate, timestampToTime } from "./utils";
+import { calculaPontosJogo, getConvocados, timestampToDate, timeStampToShortDate, timestampToTime } from "./utils";
 
 function Resultados() {
   const [jogosCopaNew, setJogosCopaNew] = useState([]);
   const [jogosCopaOld, setJogosCopaOld] = useState([]);
   const [jogosShow, setJogosShow] = useState([]);
   const [sortValue, setSortValue] = useState("g");
-  const [userBanco, setUserBanco] = useState(null);
   const [faseAtual, setFaseAtual] = useState(1);
   const [valueArtilheiro, setValueArtilheiro] = useState({ jogador: "", selecao: "" });
   const [valueCampeao, setValueCampeao] = useState("");
@@ -21,17 +20,17 @@ function Resultados() {
   const [convocados, setConvocados] = useState([]);
 
   const {
-    user,
     jogosCopa,
     resultadosUsuarios,
     selecoesCopa,
-    todosUsuarios,
-    setTodosUsuarios,
     bolaoAtual,
     boloes,
     artilheiroAtual,
     campeaoAtual,
+    isAdmin,
   } = useContext(GlobalContext);
+  const resultadosDisponiveis = resultadosUsuarios || [];
+  const bolaoSelecionado = boloes.find((b) => b.id === bolaoAtual);
 
   const theme = useTheme();
   const isXs = useMediaQuery(theme.breakpoints.only("xs"));
@@ -56,13 +55,19 @@ function Resultados() {
     setSortValue("d");
   };
 
-  const organizarPorGrupo = (fase) => {
+  const organizarPorGrupo = (fase, games = jogosCopaNew) => {
     fase = fase ? fase : faseAtual;
     const organizadosGrupo = [];
-    const grupos = fase === 1 ? [...new Set(jogosCopaNew.map((item) => item.data.grupo))].sort() : ["A"];
+    const grupos = fase === 1
+      ? [...new Set(
+          games
+            .filter((item) => item.data.fase === fase)
+            .map((item) => item.data.grupo),
+        )].sort()
+      : ["A"];
     for (let grupo of grupos) {
       const grupoJson = { grupo: grupo, jogos: [] };
-      grupoJson.jogos = jogosCopaNew
+      grupoJson.jogos = games
         .filter((j) => j.data.grupo === grupo && j.data.fase === fase)
         .sort((a, b) => a.data.data.toDate() - b.data.data.toDate());
       organizadosGrupo.push(grupoJson);
@@ -74,83 +79,78 @@ function Resultados() {
   const pegaMediaJogo = (idJogo) => {
     let somaPontos = 0;
     let users = 0;
-    for (let resUsuario of resultadosUsuarios) {
-      const res = resUsuario.data.jogos[idJogo] ? resUsuario.data.jogos[idJogo] : 0;
-      if (!isNaN(res.pontos)) {
-        somaPontos += res.pontos;
+    for (let resUsuario of resultadosDisponiveis) {
+      const pontos = resUsuario.data.jogos[idJogo]?.pontos;
+      if (pontos !== "" && pontos !== null && pontos !== undefined && Number.isFinite(Number(pontos))) {
+        somaPontos += Number(pontos);
         users += 1;
       }
     }
-    return (somaPontos / users).toFixed(2);
+    return users > 0 ? (somaPontos / users).toFixed(2) : "-";
   };
 
-  const salvaResultadosGeral = () => {
+  const salvaResultadosGeral = async () => {
+    if (!isAdmin) return;
+    const updates = [];
+
     for (let jogoCopaNew of jogosCopaNew) {
       const jogoCopaOld = jogosCopaOld.find((j) => j.id === jogoCopaNew.id);
+      if (!jogoCopaOld) continue;
       if (
         jogoCopaNew.data.gols1 !== undefined &&
         (jogoCopaOld.data.gols1 !== jogoCopaNew.data.gols1 || jogoCopaOld.data.gols2 !== jogoCopaNew.data.gols2)
       ) {
-        updateJogoCopa(bolaoAtual, jogoCopaNew.id, jogoCopaNew.data);
-        for (let resUsuario of resultadosUsuarios) {
+        updates.push(updateJogoCopa(bolaoAtual, jogoCopaNew.id, jogoCopaNew.data));
+        for (let resUsuario of resultadosDisponiveis) {
           if (resUsuario.data.jogos[jogoCopaNew.id]) {
             if (jogoCopaNew.data.gols1 === null) {
-              const jogoUsuario = resUsuario.data.jogos[jogoCopaNew.id];
-              jogoUsuario.pontos = "";
-              atualizaPontosUsuario(bolaoAtual, resUsuario.id, jogoCopaNew.id, "");
+              updates.push(atualizaPontosUsuario(
+                bolaoAtual,
+                jogoCopaNew.data.fase,
+                resUsuario.id,
+                jogoCopaNew.id,
+                "",
+              ));
             } else {
-              let pontos = 0;
               const jogoUsuario = resUsuario.data.jogos[jogoCopaNew.id];
-              const cravou =
-                jogoCopaNew.data.gols1 === jogoUsuario.gols1 && jogoCopaNew.data.gols2 === jogoUsuario.gols2;
-              const acertouVencedor =
-                (jogoCopaNew.data.gols1 > jogoCopaNew.data.gols2 && jogoUsuario.gols1 > jogoUsuario.gols2) ||
-                (jogoCopaNew.data.gols1 < jogoCopaNew.data.gols2 && jogoUsuario.gols1 < jogoUsuario.gols2);
-              const acertouMargem =
-                jogoCopaNew.data.gols1 - jogoCopaNew.data.gols2 === jogoUsuario.gols1 - jogoUsuario.gols2;
-              const acertouGols =
-                jogoCopaNew.data.gols1 === jogoUsuario.gols1 || jogoCopaNew.data.gols2 === jogoUsuario.gols2;
-
-              if (cravou) {
-                pontos = 10;
-              } else if (acertouMargem || (acertouVencedor && acertouGols)) {
-                pontos = 7;
-              } else if (acertouVencedor) {
-                pontos = 5;
-              } else if (acertouGols) {
-                pontos = 2;
-              }
-              jogoUsuario.pontos = pontos;
-              atualizaPontosUsuario(bolaoAtual, resUsuario.id, jogoCopaNew.id, pontos);
+              const pontos = calculaPontosJogo(
+                jogoCopaNew.data.gols1,
+                jogoCopaNew.data.gols2,
+                jogoUsuario.gols1,
+                jogoUsuario.gols2,
+              );
+              updates.push(atualizaPontosUsuario(
+                bolaoAtual,
+                jogoCopaNew.data.fase,
+                resUsuario.id,
+                jogoCopaNew.id,
+                pontos,
+              ));
             }
           }
         }
       }
     }
-    updateArtilheiroCampeao(bolaoAtual, adminArtilheiro, adminCampeao);
-    setJogosCopaOld(jogosCopaNew);
+    updates.push(updateArtilheiroCampeao(bolaoAtual, adminArtilheiro, adminCampeao));
+    await Promise.all(updates);
+    setJogosCopaOld(cloneDeep(jogosCopaNew));
     setJogosCopaNew(cloneDeep(jogosCopaNew));
   };
 
   useEffect(() => {
-    if (jogosCopaNew.length === 0) {
-      setJogosCopaNew(cloneDeep(jogosCopa.current));
-      setJogosCopaOld(cloneDeep(jogosCopa.current));
-    }
+    const jogos = cloneDeep(jogosCopa.current);
+    setJogosCopaNew(jogos);
+    setJogosCopaOld(cloneDeep(jogos));
+    setJogosShow([]);
+    const fase = bolaoSelecionado?.data.faseAtual || 1;
+    setFaseAtual(fase);
+  }, [bolaoAtual, bolaoSelecionado, jogosCopa]);
 
+  useEffect(() => {
     if (jogosShow.length === 0 && jogosCopaNew.length > 0) {
       organizarPorGrupo();
     }
-    if (todosUsuarios.length === 0) {
-      buscaUsuarios().then((v) => {
-        setTodosUsuarios(v.docs.map((u) => ({ id: u.id, data: u.data() })));
-      });
-    }
-
-    if (user && !userBanco && todosUsuarios.length > 0) {
-      setUserBanco(todosUsuarios.find((u) => u.id === user.uid).data);
-    }
-  }, [jogosCopaNew, user, todosUsuarios]);
+  }, [jogosCopaNew, jogosShow.length]);
 
   useEffect(() => {
     if (selecoesCopa.current && selecoesCopa.current.length > 0) {
@@ -175,18 +175,27 @@ function Resultados() {
   }, [campeaoAtual]);
 
   const handleInputChange = (event, propertyName, idJogo) => {
-    const jogo = jogosCopaNew.find((j) => {
-      return j.id === idJogo;
-    });
-    jogo.data[propertyName] =
-      event.target.value !== "" && event.target.value.match(/[0-9]/).length > 0 ? parseInt(event.target.value) : null;
-    setJogosCopaNew(jogosCopaNew);
-    organizarPorGrupo();
+    const parsedValue = /^\d$/.test(event.target.value)
+      ? parseInt(event.target.value, 10)
+      : null;
+    const nextGames = jogosCopaNew.map((jogo) =>
+      jogo.id === idJogo
+        ? {
+            ...jogo,
+            data: {
+              ...jogo.data,
+              [propertyName]: parsedValue,
+            },
+          }
+        : jogo
+    );
+    setJogosCopaNew(nextGames);
+    organizarPorGrupo(faseAtual, nextGames);
   };
 
   return (
     <Grid container justifyContent={"center"} alignItems={"center"}>
-      {jogosShow && selecoesCopa.current && resultadosUsuarios && userBanco ? (
+      {bolaoSelecionado && jogosShow && selecoesCopa.current && resultadosUsuarios ? (
         <Grid item xs={12} sm={10} container direction={"column"}>
           <Grid item container xs={12} justifyContent={"end"} sx={{ pt: 1 }}>
             <Grid item xs={4} sm={2} mr={"auto"} pb={1}>
@@ -200,10 +209,8 @@ function Resultados() {
                 }}
                 size={"small"}
               >
-                {boloes
-                  .find((b) => b.id === bolaoAtual)
-                  .data.fases.map((f) => (
-                    <MenuItem value={f.id}>{f.nome}</MenuItem>
+                {bolaoSelecionado.data.fases.map((f) => (
+                    <MenuItem value={f.id} key={f.id}>{f.nome}</MenuItem>
                   ))}
               </Select>
             </Grid>
@@ -253,6 +260,7 @@ function Resultados() {
                       {j.jogos.map((jo, k) => {
                         const time1 = selecoesCopa.current.find((s) => s.id === jo.data.times[0]);
                         const time2 = selecoesCopa.current.find((s) => s.id === jo.data.times[1]);
+                        const jogoJaComecou = Date.now() >= jo.data.data.toMillis();
                         return (
                           <Grid
                             item
@@ -278,7 +286,7 @@ function Resultados() {
                               <Typography variant="body2">{time1.data.nome}</Typography>
                             </Grid>
                             <Grid item xs={1}>
-                              {userBanco.isAdmin ? (
+                              {isAdmin && jogoJaComecou ? (
                                 <TextField
                                   variant="standard"
                                   size="small"
@@ -294,14 +302,16 @@ function Resultados() {
                                   onChange={(e) => handleInputChange(e, "gols1", jo.id)}
                                 />
                               ) : (
-                                <Typography>{jo.data.gols1 !== "" ? jo.data.gols1 : "-"}</Typography>
+                                <Typography>
+                                  {jo.data.gols1 === null || jo.data.gols1 === undefined ? "-" : jo.data.gols1}
+                                </Typography>
                               )}
                             </Grid>
                             <Grid item xs={1}>
                               <Typography>x</Typography>
                             </Grid>
                             <Grid item xs={1}>
-                              {userBanco.isAdmin ? (
+                              {isAdmin && jogoJaComecou ? (
                                 <TextField
                                   variant="standard"
                                   size="small"
@@ -317,7 +327,9 @@ function Resultados() {
                                   onChange={(e) => handleInputChange(e, "gols2", jo.id)}
                                 />
                               ) : (
-                                <Typography>{jo.data.gols2 !== "" ? jo.data.gols2 : "-"}</Typography>
+                                <Typography>
+                                  {jo.data.gols2 === null || jo.data.gols2 === undefined ? "-" : jo.data.gols2}
+                                </Typography>
                               )}
                             </Grid>
                             <Grid item xs={6.5} sm={5}>
@@ -355,7 +367,7 @@ function Resultados() {
                 inputValue={adminArtilheiro}
                 onInputChange={(e, nv) => setAdminArtilheiro(nv)}
                 isOptionEqualToValue={(o, v) => o.jogador === v.jogador}
-                disabled={!userBanco.isAdmin}
+                disabled={!isAdmin}
               />
             </Grid>
             <Grid item xs={6} sm={4}>
@@ -367,20 +379,20 @@ function Resultados() {
                 onChange={(e, nv) => setValueCampeao(nv || "")}
                 inputValue={adminCampeao}
                 onInputChange={(e, nv) => setAdminCampeao(nv)}
-                disabled={!userBanco.isAdmin}
+                disabled={!isAdmin}
               />
             </Grid>
           </Grid>
-          <Grid item xs sx={{ p: 3 }} alignSelf={"end"} display={userBanco.isAdmin}>
-            <Button
-              variant="outlined"
-              onClick={() => {
-                salvaResultadosGeral();
-              }}
-            >
-              Gravar resultados
-            </Button>
-          </Grid>
+          {isAdmin && (
+            <Grid item xs sx={{ p: 3 }} alignSelf={"end"}>
+              <Button
+                variant="outlined"
+                onClick={salvaResultadosGeral}
+              >
+                Gravar resultados
+              </Button>
+            </Grid>
+          )}
         </Grid>
       ) : null}
     </Grid>
