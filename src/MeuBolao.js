@@ -26,8 +26,6 @@ function MeuBolao() {
   const [resultSalvo, setResultSalvo] = useState(false);
   const [resultNaoSalvo, setResultNaoSalvo] = useState(false);
   const [sortValue, setSortValue] = useState("g");
-  const [valueArtilheiro, setValueArtilheiro] = useState("");
-  const [valueCampeao, setValueCampeao] = useState("");
   const [faseAtual, setFaseAtual] = useState(1);
   const [convocados, setConvocados] = useState([]);
   const [bolaoExibido, setBolaoExibido] = useState("");
@@ -45,6 +43,18 @@ function MeuBolao() {
   const faseConfigurada = Number(
     boloes.find((bolao) => bolao.id === bolaoAtual)?.data?.faseAtual,
   ) || 1;
+  const opcoesArtilheiro = resultados.artilheiro
+    && !convocados.some((convocado) => convocado.jogador === resultados.artilheiro)
+      ? [...convocados, { jogador: resultados.artilheiro, selecao: "" }]
+      : convocados;
+  const valueArtilheiro = opcoesArtilheiro.find(
+    (convocado) => convocado.jogador === resultados.artilheiro,
+  ) || null;
+  const opcoesCampeao = selecoesCopa.current.map((selecao) => selecao.data.nome);
+  if (resultados.campeao && !opcoesCampeao.includes(resultados.campeao)) {
+    opcoesCampeao.push(resultados.campeao);
+  }
+  opcoesCampeao.push("");
 
   const primeiroJogoCampeonato = useMemo(() => {
     if (!jogosCopa.current || jogosCopa.current.length === 0) return null;
@@ -106,8 +116,6 @@ function MeuBolao() {
     setResultados([]);
     setJogosShow([]);
     setSortValue("g");
-    setValueArtilheiro("");
-    setValueCampeao("");
     setConvocados([]);
     setResultSalvo(false);
     setResultNaoSalvo(false);
@@ -128,8 +136,6 @@ function MeuBolao() {
       }
 
       setResultados(res);
-      setValueCampeao(res.campeao);
-
       if (jogosShow.length === 0 && jogosCopa.current.length > 0) {
         organizarPorGrupo();
       }
@@ -137,7 +143,6 @@ function MeuBolao() {
       if (selecoesCopa.current.length > 0) {
         let convocadosJson = getConvocados(selecoesCopa.current);
         setConvocados(convocadosJson);
-        setValueArtilheiro(convocadosJson.find((c) => c.jogador === res.artilheiro) || {jogador:"", selecao:""});
       }
       carregouInformacoesIniciais.current = true;
       setBolaoExibido(bolaoAtual);
@@ -168,10 +173,6 @@ function MeuBolao() {
       setConvocados(getConvocados(selecoesCopa.current));
     }
   }, [bolaoAtual, bolaoExibido, dadosBolaoVersion]);
-
-  useEffect(() => {
-    setValueArtilheiro(convocados.find((c) => c.jogador === resultados.artilheiro) || {jogador:"", selecao:""});
-  }, [convocados]);
 
   const handleInputChange = (event, propertyName, idJogo) => {
     const newResultados = JSON.parse(JSON.stringify(resultados));
@@ -397,30 +398,25 @@ function MeuBolao() {
           <Grid item container xs={12} sx={{ pt: 1 }} spacing={2}>
             <Grid item xs={6} sm={4}>
               <Autocomplete
-                options={convocados}
+                options={opcoesArtilheiro}
                 groupBy={(option) => option.selecao}
                 getOptionLabel={(option) => option.jogador}
                 renderInput={(params) => <TextField {...params} label="Artilheiro" />}
                 value={valueArtilheiro}
-                onChange={(e, nv) => setValueArtilheiro(nv ? nv : { jogador: "", selecao: "" })}
-                inputValue={resultados.artilheiro}
-                onInputChange={(e, nv) => handleArtilheiroCampeao(nv, "artilheiro")}
+                onChange={(e, nv) => handleArtilheiroCampeao(nv?.jogador || "", "artilheiro")}
                 isOptionEqualToValue={(o, v) => {
                   return o.jogador === v.jogador;
                 }}
-                defaultValue={{ jogador: "", selecao: "" }}
                 disabled={campeonatoJaComecou}
               />
             </Grid>
             <Grid item xs={6} sm={4}>
               <Autocomplete
-                options={[...selecoesCopa.current.map((s) => s.data.nome), ""]}
+                options={opcoesCampeao}
                 getOptionLabel={(option) => option}
                 renderInput={(params) => <TextField {...params} label="Campeão" />}
-                value={valueCampeao}
-                onChange={(e, nv) => setValueCampeao(nv)}
-                inputValue={resultados.campeao}
-                onInputChange={(e, nv) => handleArtilheiroCampeao(nv, "campeao")}
+                value={resultados.campeao || ""}
+                onChange={(e, nv) => handleArtilheiroCampeao(nv || "", "campeao")}
                 disabled={campeonatoJaComecou}
               />
             </Grid>
