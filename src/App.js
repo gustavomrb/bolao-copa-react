@@ -38,11 +38,19 @@ const darkTheme = createTheme({
 
 export const GlobalContext = createContext();
 
+const getResultadosScope = (pathname, isAdmin) => {
+  if (pathname === "/situacao") return "participants-only";
+  if (["/classificacao", "/secada"].includes(pathname)) return "started-phases";
+  if (pathname === "/resultados") return isAdmin ? "scoring" : "started-scores";
+  return "current-user";
+};
+
 function App() {
   const [user] = useAuthState(auth);
   const navigate = useNavigate();
   const [menuAberto, setMenuAberto] = useState(false);
   const [resultadosUsuarios, setResultadosUsuarios] = useState(null);
+  const [resultadosMeta, setResultadosMeta] = useState(null);
   const [todosUsuarios, setTodosUsuarios] = useState([]);
   const [boloes, setBoloes] = useState([]);
   const [bolaoAtual, setBolaoAtual] = useState("");
@@ -56,6 +64,11 @@ function App() {
   let jogosCopa = useRef([]);
   const bolaoCarregado = useRef("");
   let location = useLocation();
+  const resultadosScopeAtual = getResultadosScope(location.pathname, isAdmin);
+  const resultadosUsuariosVisiveis =
+    resultadosMeta?.bolaoId === bolaoAtual && resultadosMeta?.scope === resultadosScopeAtual
+      ? resultadosUsuarios
+      : null;
 
   useEffect(() => {
     if (!user) {
@@ -106,6 +119,7 @@ function App() {
 
     if (bolaoAtual && bolaoAtual !== "" && user) {
       setResultadosUsuarios(null);
+      setResultadosMeta(null);
 
       if (bolaoCarregado.current !== bolaoAtual) {
         jogosCopa.current = [];
@@ -149,20 +163,16 @@ function App() {
       });
 
       const bolao = boloes.find((item) => item.id === bolaoAtual);
-      const resultsScope = location.pathname === "/situacao"
-        ? "participants-only"
-        : ["/classificacao", "/secada"].includes(location.pathname)
-          ? "started-phases"
-          : location.pathname === "/resultados"
-            ? isAdmin ? "scoring" : "started-scores"
-            : "current-user";
       unsubResultados = subscribeResultadosBolao({
         bolaoId: bolaoAtual,
         bolao: bolao ? bolao.data : {},
         userId: user.uid,
-        scope: resultsScope,
+        scope: resultadosScopeAtual,
         onData: (resultados) => {
-          if (active) setResultadosUsuarios(resultados);
+          if (active) {
+            setResultadosUsuarios(resultados);
+            setResultadosMeta({ bolaoId: bolaoAtual, scope: resultadosScopeAtual });
+          }
         },
         onReady: () => {},
         onError: (error) => {
@@ -177,7 +187,7 @@ function App() {
       if (unsubJogos) unsubJogos();
       if (unsubResultados) unsubResultados();
     };
-  }, [bolaoAtual, boloes, isAdmin, location.pathname, user]);
+  }, [bolaoAtual, boloes, resultadosScopeAtual, user]);
 
   const menuLateral = (
     <React.Fragment>
@@ -192,6 +202,7 @@ function App() {
           onChange={(e) => {
             const novoBolaoId = e.target.value;
             setResultadosUsuarios(null);
+            setResultadosMeta(null);
             setBolaoAtual(novoBolaoId);
             setMenuAberto(false);
             navigate("/home");
@@ -325,7 +336,7 @@ function App() {
           value={{
             user,
             jogosCopa,
-            resultadosUsuarios,
+            resultadosUsuarios: resultadosUsuariosVisiveis,
             setResultadosUsuarios,
             selecoesCopa,
             todosUsuarios,
