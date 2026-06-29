@@ -6,7 +6,6 @@
 firestore-debug.log
 /.pnp
 .pnp.js
-package-lock.json
 
 # testing
 /coverage
